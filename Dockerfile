@@ -18,6 +18,7 @@ RUN go get google.golang.org/grpc
 # install and build go app
 COPY . /go/src/github.com/nerdalize/moulin/
 RUN go build -o /go/bin/server /go/src/github.com/nerdalize/moulin/server/main.go 
+RUN go build -o /go/bin/client /go/src/github.com/nerdalize/moulin/client/main.go 
 
 EXPOSE 50051
 ENTRYPOINT ["/go/bin/server"]
