@@ -5,7 +5,8 @@ RUN apt-get update && \
 	rm -rf /var/lib/apt/lists/
 
 # install go dependencies
-RUN go get github.com/go-redis/redis
+RUN go get github.com/mediocregopher/radix.v2
+
 
 # install protoc
 WORKDIR protobuf
@@ -18,4 +19,5 @@ RUN go get google.golang.org/grpc
 COPY . /go/src/github.com/nerdalize/moulin/
 RUN go build -o /go/bin/server /go/src/github.com/nerdalize/moulin/server/main.go 
 
+EXPOSE 50051
 ENTRYPOINT ["/go/bin/server"]

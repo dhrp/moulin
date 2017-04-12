@@ -8,9 +8,8 @@ import (
 	"google.golang.org/grpc"
 	pb "github.com/nerdalize/moulin/helloworld"
 	"google.golang.org/grpc/reflection"
-	"github.com/mediocregopher/radix.v2/pool"
-	"github.com/mediocregopher/radix.v2/redis"
-
+	// "time"
+	"github.com/go-redis/redis"
 	"fmt"
 	"os"
 )
@@ -21,54 +20,42 @@ const (
 
 // server is used to implement helloworld.GreeterServer.
 type server struct{
-	r *pool.Pool
+	r *redis.Client
 	hostname string
 }
 
-
 // Open a new connection to Redis
-func NewRedisClient() *pool.Pool {
-	df := func(network, addr string) (*redis.Client, error) {
-		client, err := redis.Dial(network, addr)
-		if err != nil {
-			return nil, err
-		}
-		if err = client.Cmd("AUTH", "nevermind").Err; err != nil {
-			client.Close()
-			return nil, err
-		}
-		return client, nil
-	}
+func NewRedisClient() *redis.Client {
 
-	client, err := pool.NewCustom("tcp", "dev.nlze.nl:6379", 10, df)
+	client := redis.NewClient(&redis.Options{
+		Addr:     "dev.nlze.nl:6379",
+		Password: "nevermind", // no password set
+		DB:       0,  // use default DB
+		// PoolSize:    300,
+	})
+
+	pong, err := client.Ping().Result()
 	if err == nil {
-		fmt.Println("redis client connected successfully with radix driver")		
+		var _ = pong
+		fmt.Println("redis client connected successfully")		
 	} else {
 		fmt.Println(err)		
 	}
-
-	fmt.Println(client)
 	return client
 }
 
 // Pop item from the queue, block untill one is available
-func getFromQueue(client *pool.Pool) string {
+func getFromQueue(client *redis.Client) string {
 
 	fmt.Println("getting item from queue")
 					   
-	val, err := client.Cmd("BRPOPLPUSH", "grpc:1", "grpc:2", 0).Str()
-	fmt.Println(val)
-	// fmt.Println(resp.Str)
+	val, err := client.BRPopLPush("grpc:1", "grpc:2", 0).Result()
 
-	// err, val := resp.Str()
-	// fmt.Println(val)	
-	// fmt.Println(a)	
-
-	if err != nil {
-        panic(err)
+	if err == redis.Nil {
+		fmt.Println("key does not exists")
+	} else if err != nil {
+		panic(err)
 	}
-
-	fmt.Println("got " + val)
 
 	return val
 }
