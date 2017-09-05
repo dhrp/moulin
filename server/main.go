@@ -4,12 +4,12 @@ import (
 	"log"
 	"net"
 
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	pb "github.com/nerdalize/moulin/helloworld"
-	"google.golang.org/grpc/reflection"
 	"github.com/mediocregopher/radix.v2/pool"
 	"github.com/mediocregopher/radix.v2/redis"
+	pb "github.com/nerdalize/moulin/helloworld"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	"fmt"
 	"os"
@@ -20,11 +20,10 @@ const (
 )
 
 // server is used to implement helloworld.GreeterServer.
-type server struct{
-	r *pool.Pool
+type server struct {
+	r        *pool.Pool
 	hostname string
 }
-
 
 // Open a new connection to Redis
 func NewRedisClient() *pool.Pool {
@@ -40,11 +39,11 @@ func NewRedisClient() *pool.Pool {
 		return client, nil
 	}
 
-	client, err := pool.NewCustom("tcp", "dev.nlze.nl:6379", 10, df)
+	client, err := pool.NewCustom("tcp", "localhost:6379", 10, df)
 	if err == nil {
-		fmt.Println("redis client connected successfully with radix driver")		
+		fmt.Println("redis client connected successfully with radix driver")
 	} else {
-		fmt.Println(err)		
+		fmt.Println(err)
 	}
 
 	fmt.Println(client)
@@ -55,27 +54,19 @@ func NewRedisClient() *pool.Pool {
 func getFromQueue(client *pool.Pool) string {
 
 	fmt.Println("getting item from queue")
-					   
 	val, err := client.Cmd("BRPOPLPUSH", "grpc:1", "grpc:2", 0).Str()
 	fmt.Println(val)
-	// fmt.Println(resp.Str)
-
-	// err, val := resp.Str()
-	// fmt.Println(val)	
-	// fmt.Println(a)	
 
 	if err != nil {
-        panic(err)
+		panic(err)
 	}
 
 	fmt.Println("got " + val)
-
 	return val
 }
 
 // SayHello implements helloworld.GreeterServer
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	// return &pb.HelloReply{Message: "Hello, you've connected successfully " + in.Name}, nil
 	return &pb.HelloReply{Message: "You've connected to " + s.hostname}, nil
 }
 
@@ -84,7 +75,7 @@ func (s *server) SayHelloAgain(ctx context.Context, in *pb.HelloRequest) (*pb.He
 	fmt.Println("client connected")
 	argument := getFromQueue(s.r)
 	fmt.Println(argument + " retrieved from redis, sending to client")
-    return &pb.HelloReply{Message: "You've been assigned " + argument}, nil
+	return &pb.HelloReply{Message: "You've been assigned " + argument}, nil
 }
 
 func main() {
@@ -92,16 +83,17 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	
+
 	hostname, err := os.Hostname()
 	fmt.Println("server started on " + hostname)
 
 	s := grpc.NewServer()
 	r := NewRedisClient()
 
-	serverinstance := &server{}
-	serverinstance.r = r
-	serverinstance.hostname = hostname
+	serverinstance := &server{r: r, hostname: hostname}
+	// serverinstance := &server{}
+	// serverinstance.r = r
+	// serverinstance.hostname = hostname
 
 	pb.RegisterGreeterServer(s, serverinstance)
 	// Register reflection service on gRPC server.

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -43,6 +42,33 @@ func (c *RedClient) init() *RedClient {
 	return c
 }
 
+func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, destinationSet string, expirationSec int) (string, error) {
+
+	expiresAt := int64(time.Now().Unix()) + int64(expirationSec)
+	score := strconv.FormatInt(expiresAt, 10)
+
+	luaScript := `
+		local value = redis.call('RPOP', KEYS[1]);
+		local jsonObj = cjson.decode(value);
+		local taskID = string.format("%.0f", jsonObj['id']);
+		local destinationKey = KEYS[1] .. "." .. taskID;
+		redis.call('SET', destinationKey, value);
+		local destinationSet = ARGV[1];
+		local count = redis.call('ZADD', destinationSet, ARGV[2], taskID);
+		return {taskID, value};
+		`
+
+	result, err := c.clientpool.Cmd("EVAL", luaScript, 1, queueID, destinationSet, score).Array()
+	if err != nil {
+		log.Panic(err)
+	}
+	taskID, _ := result[0].Int()
+	msg, _ := result[1].Str()
+
+	log.Printf("COMPLETED %d, %s", taskID, msg)
+	return msg, nil
+}
+
 func (c *RedClient) del(key string) int {
 	count, err := c.clientpool.Cmd("DEL", key).Int()
 	if err != nil {
@@ -52,14 +78,24 @@ func (c *RedClient) del(key string) int {
 }
 
 func (c *RedClient) lpush(key string, value string) (int, error) {
+
+	log.Printf("Doing: LPUSH %s %s", key, value)
 	newLength, err := c.clientpool.Cmd("LPUSH", key, value).Int()
 	if err != nil {
 		log.Panic(err)
-		return 0, err
+	}
+	return newLength, err
+}
+
+func (c *RedClient) rpop(key string) (string, error) {
+
+	log.Println("Doing: RPOP " + key)
+	resp := c.clientpool.Cmd("RPOP", key)
+	if err := resp.Err; err != nil {
+		return "", err
 	}
 
-	log.Println("pushed " + value + " to list: " + key)
-	return newLength, err
+	return resp.Str()
 }
 
 func (c *RedClient) brpop(key string) string {
@@ -70,6 +106,16 @@ func (c *RedClient) brpop(key string) string {
 		log.Panic(err)
 	}
 	msg := val[1] // [0] is the name of the queue / list
+	return msg
+}
+
+func (c *RedClient) brpoplpush(from string, to string) string {
+
+	log.Printf("Doing: BRPOP %s %s 0"+from, to)
+	msg, err := c.clientpool.Cmd("BRPOPLPUSH", from, to, 0).Str()
+	if err != nil {
+		log.Panic(err)
+	}
 	return msg
 }
 
@@ -109,15 +155,14 @@ func (c *RedClient) zaddUpdate(set string, score string, member string) (int, er
 	return count, nil
 }
 
-func (c *RedClient) zrem(set string, value string) (int, error) {
+func (c *RedClient) zrevrange(set string, from int, to int) ([]string, error) {
 
-	log.Println("Doing: ZREM " + set + " " + value)
-	count, err := c.clientpool.Cmd("ZREM", set, value).Int()
+	log.Printf("Doing: ZREVRANGE %s %d %d", set, from, to)
+	members, err := c.clientpool.Cmd("ZREVRANGE", set, from, to).List()
 	if err != nil {
 		log.Panic(err)
-		return 0, fmt.Errorf("ZREM " + set + " " + value + "failed!")
 	}
-	return count, nil
+	return members, nil
 }
 
 // Do an atomic from sorted list; to sorted list operation
@@ -137,5 +182,6 @@ func (c *RedClient) moveMemberFromSetToSet(from string, to string, member string
 		log.Panic(err)
 	}
 	return count, nil
-
 }
+
+// func load -- Lua for Load

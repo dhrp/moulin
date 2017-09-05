@@ -15,6 +15,23 @@ type TaskMessage struct {
 	Envs []string `json:"envs"`
 }
 
+func (t *TaskMessage) toString() string {
+	b, err := json.Marshal(t)
+	if err != nil {
+		log.Panic("error:", err)
+	}
+	return string(b)
+}
+
+func (t *TaskMessage) fromString(jsonStr string) *TaskMessage {
+
+	err := json.Unmarshal([]byte(jsonStr), &t)
+	if err != nil {
+		log.Panic(err)
+	}
+	return t
+}
+
 func newScore() string {
 	// determine the score (when task should expire)
 	timestamp := int64(time.Now().Unix())
@@ -23,58 +40,102 @@ func newScore() string {
 }
 
 // Load loads a message from the queue, and mark it as processing
-func Load(red RedClient, queue string) bool {
+func Load(red RedClient, queueID string) TaskMessage {
 
-	// Get taskMessage (string) from queue
-	rawMsgString := red.brpop(queue)
+	log.Println("**********")
+	log.Println("LOAD START")
 
-	// Get the taskID from the taskMessage
+	receivedQueue := queueID + ".received"
+
+	// try if there is an expired task to pick up
 	var taskMessage TaskMessage
-	err := json.Unmarshal([]byte(rawMsgString), &taskMessage)
-	if err != nil {
-		log.Println(err)
-		// Here we should really log something, or notify; as the json
-		// cannot be parsed
-		return false
+
+	// try if there is a task on the received queue to pick up
+	msg, err := red.rpop(receivedQueue)
+	if err == nil {
+		taskMessage.fromString(msg)
+		return taskMessage
 	}
 
-	// taskId := taskMessage.ID
-	taskID := strconv.FormatInt(taskMessage.ID, 10)
+	// switch a task from the queue to the received queue
+	red.brpoplpush(queueID, receivedQueue)
 
-	// save taskId to sorted set with timeout
-	red.set(queue+"."+taskID, rawMsgString)
+	// fetch from received queue, save the message to it's key
+	// and add the ID to the running set
+
+	destinationSet := fmt.Sprintf("%s.running", queueID)
+	msg, err = red.popQueueAndSaveKeyToSet(receivedQueue, destinationSet, 300)
+	if err == nil {
+		taskMessage.fromString(msg)
+		fmt.Println(taskMessage)
+	}
+
+	// return taskMessage
+	// // pop it from the received queue and set it on a key
+	// msg, err = red.rpop(receivedQueue)
+	// if err == nil {
+	// 	taskMessage.fromString(msg)
+	// }
+
+	// taskId := taskMessage.ID
+	// taskID := strconv.FormatInt(taskMessage.ID, 10)
+	// key := fmt.Sprintf("%s.%s", queueID, taskID)
+
+	// save taskMessage (string) to a key.
+	// red.set(key, rawMsgString)w
 
 	/// save the item to the sorted set
-	set := queue + ".running"
-	score := newScore()
-	value := queue + "." + taskID
+	// set := queueID + ".running"
+	// score := newScore()
+	// member := taskID
 
 	// ZADD Q_working_set <now>+300 queue-id.task-id
-	red.zadd(set, score, value)
+	// red.zadd(set, score, member)
 
-	return true
+	log.Println("LOAD END")
+	log.Println("**********")
+
+	return taskMessage
 }
 
-// heartbeat updates the status of a message
-func Heartbeat(red RedClient, queueID string, taskID string, score string) bool {
+// Heartbeat updates the status of a message
+func Heartbeat(red RedClient, queueID string, taskID string, expirationSec int) bool {
+
+	log.Println("***************")
+	log.Println("HEARTBEAT START")
 
 	set := queueID + ".running"
-	value := queueID + "." + taskID
+	member := taskID
+
+	expiresAt := int64(time.Now().Unix()) + int64(expirationSec)
+	score := strconv.FormatInt(expiresAt, 10)
 
 	// _, _, _ = set, score, value
-	count, _ := red.zaddUpdate(set, score, value)
+	count, _ := red.zaddUpdate(set, score, member)
 	if count == 0 {
 		log.Println("Heartbeat: no item could be found to update, was item already " +
 			"completed?, or perhaps the item was updated < 1 sec ago.")
 		return false
 	}
+
+	log.Println("HEARTBEAT END")
+	log.Println("***************")
+
 	return true
 }
 
-// complete marks the item as completed.
+// Complete marks the item as completed.
 func Complete(red RedClient, queueID string, taskID string) bool {
 
-	// count, _ := red.moveValueFromToSet(from, to, value)(int, error)
+	from := fmt.Sprintf("%s.running", queueID)
+	to := fmt.Sprintf("%s.complete", queueID)
+	member := taskID
+
+	count, _ := red.moveMemberFromSetToSet(from, to, member)
+	if count != 1 {
+		log.Printf("Didn't complete the right amount of items!: %d", count)
+		return false
+	}
 	return true
 }
 
