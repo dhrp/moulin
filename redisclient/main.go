@@ -10,7 +10,7 @@ import (
 
 // TaskMessage is the 'message' format used on our queue
 type TaskMessage struct {
-	ID   int64    `json:"id"`
+	ID   string   `json:"id"`
 	Body string   `json:"body"`
 	Envs []string `json:"envs"`
 }
@@ -46,18 +46,21 @@ func Load(red RedClient, queueID string) TaskMessage {
 	log.Println("LOAD START")
 
 	receivedQueue := queueID + ".received"
-
-	// try if there is an expired task to pick up
 	var taskMessage TaskMessage
 
-	// try if there is a task on the received queue to pick up
+	// try if there is an expired task to pick up
+	// member := checkExpired(set)
+
+	// try if there is a task on the received queue to pick up this
+	// rare condition would only happen if there would be a failure after
+	// the next brpoplpush, but before the popQueueAndSaveKeyToSet
 	msg, err := red.rpop(receivedQueue)
 	if err == nil {
 		taskMessage.fromString(msg)
 		return taskMessage
 	}
 
-	// switch a task from the queue to the received queue
+	// block; wait and switch a task from the queue to the received queue
 	red.brpoplpush(queueID, receivedQueue)
 
 	// fetch from received queue, save the message to it's key
@@ -65,32 +68,13 @@ func Load(red RedClient, queueID string) TaskMessage {
 
 	destinationSet := fmt.Sprintf("%s.running", queueID)
 	msg, err = red.popQueueAndSaveKeyToSet(receivedQueue, destinationSet, 300)
-	if err == nil {
-		taskMessage.fromString(msg)
-		fmt.Println(taskMessage)
+	if err != nil {
+		// retry.
+		log.Println("Didn't find an item on the received queue (exception), will try to pop a new one from incoming queue")
+		Load(red, queueID)
 	}
 
-	// return taskMessage
-	// // pop it from the received queue and set it on a key
-	// msg, err = red.rpop(receivedQueue)
-	// if err == nil {
-	// 	taskMessage.fromString(msg)
-	// }
-
-	// taskId := taskMessage.ID
-	// taskID := strconv.FormatInt(taskMessage.ID, 10)
-	// key := fmt.Sprintf("%s.%s", queueID, taskID)
-
-	// save taskMessage (string) to a key.
-	// red.set(key, rawMsgString)w
-
-	/// save the item to the sorted set
-	// set := queueID + ".running"
-	// score := newScore()
-	// member := taskID
-
-	// ZADD Q_working_set <now>+300 queue-id.task-id
-	// red.zadd(set, score, member)
+	taskMessage.fromString(msg)
 
 	log.Println("LOAD END")
 	log.Println("**********")
@@ -127,6 +111,9 @@ func Heartbeat(red RedClient, queueID string, taskID string, expirationSec int) 
 // Complete marks the item as completed.
 func Complete(red RedClient, queueID string, taskID string) bool {
 
+	log.Println("***************")
+	log.Println("COMPLETE START")
+
 	from := fmt.Sprintf("%s.running", queueID)
 	to := fmt.Sprintf("%s.complete", queueID)
 	member := taskID
@@ -136,6 +123,9 @@ func Complete(red RedClient, queueID string, taskID string) bool {
 		log.Printf("Didn't complete the right amount of items!: %d", count)
 		return false
 	}
+
+	log.Println("COMPLETE END")
+	log.Println("***************")
 	return true
 }
 

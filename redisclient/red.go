@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"strconv"
 	"time"
@@ -42,6 +43,66 @@ func (c *RedClient) init() *RedClient {
 	return c
 }
 
+func (c *RedClient) checkExpired(set string) (string, error) {
+
+	now := int64(time.Now().Unix())
+
+	log.Printf("Doing: ZRANGEBYSCORE %s -inf %d LIMIT 0 1", set, now)
+	resp := c.clientpool.Cmd("ZRANGEBYSCORE", set, "-inf", now, "LIMIT", 0, 1)
+	if err := resp.Err; err != nil {
+		log.Panic(err)
+	}
+
+	list, err := resp.List()
+	if err != nil {
+		log.Panic(err)
+	}
+	if len(list) != 1 {
+		return "", errors.New("Not exactly one expired item returned")
+	}
+	return list[0], nil
+}
+
+func (c *RedClient) checkUpdateAndReturnExpired(set string, expirationSec int) (string, error) {
+
+	now := int64(time.Now().Unix())
+	expiresAt := now + int64(expirationSec)
+	score := strconv.FormatInt(expiresAt, 10)
+
+	// ZRANGEBYSCORE test.sorted_sets.future -inf 1504764565 LIMIT 0 1
+	// redis.call('ZADD', destinationSet, ARGV[2], taskID);
+
+	// #
+	luaScript := `
+		local members = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, 1)
+		if members[1] == nil then return nil end;
+		local member = members[1]
+		redis.call('ZADD', KEYS[1], ARGV[2], member);
+		return member
+	`
+
+	log.Printf("Doing: ZRANGEBYSCORE %s -inf %d LIMIT 0 1", set, now)
+	log.Printf("Doing: ZADD %s <returnedmember> %s", set, score)
+	// resp := c.clientpool.Cmd("ZRANGEBYSCORE", set, "-inf", now, "LIMIT", 0, 1)
+	resp := c.clientpool.Cmd("EVAL", luaScript, 1, set, now, score)
+	if err := resp.Err; err != nil {
+		log.Panic(err)
+	}
+
+	if resp.IsType(redis.Nil) {
+		log.Println("no items retrieved")
+		return "", nil
+	}
+
+	member, err := resp.Str()
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return member, nil
+
+}
+
 func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, destinationSet string, expirationSec int) (string, error) {
 
 	expiresAt := int64(time.Now().Unix()) + int64(expirationSec)
@@ -49,8 +110,13 @@ func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, destinationSet strin
 
 	luaScript := `
 		local value = redis.call('RPOP', KEYS[1]);
+		if value == false then
+			local errorTable = {};
+			errorTable["err"] = "No item in queue";
+			return errorTable;
+		end
 		local jsonObj = cjson.decode(value);
-		local taskID = string.format("%.0f", jsonObj['id']);
+		local taskID = jsonObj['id'];
 		local destinationKey = KEYS[1] .. "." .. taskID;
 		redis.call('SET', destinationKey, value);
 		local destinationSet = ARGV[1];
@@ -58,10 +124,16 @@ func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, destinationSet strin
 		return {taskID, value};
 		`
 
-	result, err := c.clientpool.Cmd("EVAL", luaScript, 1, queueID, destinationSet, score).Array()
-	if err != nil {
-		log.Panic(err)
+	resp := c.clientpool.Cmd("EVAL", luaScript, 1, queueID, destinationSet, score)
+	if err := resp.Err; err != nil {
+		if err.Error() == "No item in queue" {
+			return "", err
+		} else {
+			log.Panic(err)
+		}
 	}
+
+	result, _ := resp.Array()
 	taskID, _ := result[0].Int()
 	msg, _ := result[1].Str()
 
@@ -169,14 +241,15 @@ func (c *RedClient) zrevrange(set string, from int, to int) ([]string, error) {
 func (c *RedClient) moveMemberFromSetToSet(from string, to string, member string) (int, error) {
 
 	luaScript := `
-	redis.call('ZREM', KEYS[1], ARGV[1]);
-	local count = redis.call('ZADD', KEYS[2], ARGV[1], ARGV[2]);
-	return count
+		redis.call('ZREM', KEYS[1], ARGV[1]);
+		local count = redis.call('ZADD', KEYS[2], ARGV[1], ARGV[2]);
+		return count
 	`
 
 	timestamp := int64(time.Now().Unix())
 	score := strconv.FormatInt(timestamp, 10)
 
+	log.Printf("Doing: EVAL <luascript> %s %s %s %s", from, to, score, member)
 	count, err := c.clientpool.Cmd("EVAL", luaScript, 2, from, to, score, member).Int()
 	if err != nil {
 		log.Panic(err)
