@@ -42,16 +42,15 @@ func (suite *RedClientTestSuite) TestpopQueueAndSaveKeyToSet() {
 	taskMessage := GenerateMessage(suite.sampleMsgBody)
 	suite.red.lpush("test.queue.received", taskMessage.toString())
 
-	queueID := "test.queue.received"
-	destinationSet := "queue.running"
+	queueID := "test.queue"
 	expirationSec := 333
 
 	// positive case; item exists
-	msg, _ := suite.red.popQueueAndSaveKeyToSet(queueID, destinationSet, expirationSec)
+	msg, _ := suite.red.popQueueAndSaveKeyToSet(queueID, expirationSec)
 	suite.Equal(taskMessage.toString(), msg, "message from popQueueAndSaveKeyToSet didn't match expectation")
 
 	// negative case; no item on received queue
-	_, err := suite.red.popQueueAndSaveKeyToSet("empty", destinationSet, expirationSec)
+	_, err := suite.red.popQueueAndSaveKeyToSet("empty", expirationSec)
 	suite.NotEmpty(err, "should have thrown an error when no items in queue")
 
 }
@@ -126,14 +125,14 @@ func (suite *RedClientTestSuite) TestSortedSet() {
 	expiredScore = strconv.FormatInt(timestamp, 10)
 	suite.red.zadd(set, expiredScore, "67676767676767")
 	// expiredID, _ := suite.red.checkExpired(set)
-	expiredID, _ := suite.red.checkUpdateAndReturnExpired(set, 300)
+	expiredID, _ := suite.red.fetchAndUpdateExpired(set, 300)
 	suite.Equal(taskID, expiredID, "Did not get the (most) expired ID from the set")
 
 	// Check what happens with no expired items
 	// Create item valid 'till 2200
 	suite.red.zadd("test.sorted_sets.future", "7258118400", "9090909090909")
 	// member, _ := suite.red.checkExpired(set)
-	member, _ := suite.red.checkUpdateAndReturnExpired("test.sorted_sets.future", 300)
+	member, _ := suite.red.fetchAndUpdateExpired("test.sorted_sets.future", 300)
 	suite.Equal("", member, "Got an item ?!?")
 
 	log.Println("### Testing Sorted Set End")
@@ -154,16 +153,26 @@ func (suite *RedClientTestSuite) TestLoadPhase() {
 	suite.red.lpush("test.queue", taskMessage2.toString())
 
 	// load one back
-	result := Load(suite.red, "test.queue")
+	result := Load(suite.red, "test.queue", 300)
 	suite.Equal(taskMessage1, result, "The first message put on the queue is not what came back")
 
 	// test if it is now also in the sorted set.
-	members, _ := suite.red.zrevrange("test.queue.running", 0, 0) // set in inclusive
+	members, _ := suite.red.zrevrange("test.queue.running", 0, 0) // set is inclusive
 	suite.Equal(1, len(members), "expected exactly one item to be returned from set")
 
 	if len(members) == 1 {
 		suite.Equal(result.ID, members[0], "the taskID doesn't match the one in the running set")
 	}
+
+	// test the scenario of an expired item in running set
+	timestamp := int64(time.Now().Unix()) - 500
+	expiredScore := strconv.FormatInt(timestamp, 10)
+	// set the score as expired
+	updated, _ := suite.red.zadd("test.queue.running", expiredScore, result.ID)
+	suite.Equal(0, updated, "A member was added, but not that was not expected")
+
+	expiredTaskMessage := Load(suite.red, "test.queue", 300)
+	suite.Equal(taskMessage1, expiredTaskMessage, "The what was on the key of the expired member is not what was expected")
 
 	log.Println("**********")
 	log.Println("END LOAD PHASE TEST")
@@ -221,7 +230,7 @@ func (suite *RedClientTestSuite) TestRedEndToEnd() {
 	suite.red.lpush(queueID, taskMessage.toString())
 
 	// Load it from the queue
-	msg := Load(suite.red, queueID)
+	msg := Load(suite.red, queueID, 300)
 	taskID := msg.ID
 
 	// Send a heartbeat

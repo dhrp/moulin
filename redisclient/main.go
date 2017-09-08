@@ -40,38 +40,51 @@ func newScore() string {
 }
 
 // Load loads a message from the queue, and mark it as processing
-func Load(red RedClient, queueID string) TaskMessage {
+func Load(red RedClient, queueID string, expirationSec int) TaskMessage {
 
 	log.Println("**********")
 	log.Println("LOAD START")
 
-	receivedQueue := queueID + ".received"
+	receivedList := queueID + ".received"
+	runningSet := queueID + ".running"
 	var taskMessage TaskMessage
 
-	// try if there is an expired task to pick up
-	// member := checkExpired(set)
+	// try if there is an expired task to pick up, and if so, return it.
+	member, err := red.fetchAndUpdateExpired(runningSet, expirationSec)
+	if err != nil && err.Error() != "No expired members retrieved" {
+		log.Panic(err)
+	}
+	if member != "" {
+		msg, errIn := red.get(queueID + "." + member)
+		if errIn == nil {
+			taskMessage.fromString(msg)
+			return taskMessage
+		} else {
+			if errIn.Error() == "Nothing found at key" {
+				log.Println(errIn)
+			}
+		}
+	}
 
 	// try if there is a task on the received queue to pick up this
 	// rare condition would only happen if there would be a failure after
 	// the next brpoplpush, but before the popQueueAndSaveKeyToSet
-	msg, err := red.rpop(receivedQueue)
+	msg, err := red.rpop(receivedList)
 	if err == nil {
 		taskMessage.fromString(msg)
 		return taskMessage
 	}
 
 	// block; wait and switch a task from the queue to the received queue
-	red.brpoplpush(queueID, receivedQueue)
+	red.brpoplpush(queueID, receivedList)
 
 	// fetch from received queue, save the message to it's key
 	// and add the ID to the running set
-
-	destinationSet := fmt.Sprintf("%s.running", queueID)
-	msg, err = red.popQueueAndSaveKeyToSet(receivedQueue, destinationSet, 300)
+	msg, err = red.popQueueAndSaveKeyToSet(queueID, expirationSec)
 	if err != nil {
 		// retry.
 		log.Println("Didn't find an item on the received queue (exception), will try to pop a new one from incoming queue")
-		Load(red, queueID)
+		Load(red, queueID, expirationSec)
 	}
 
 	taskMessage.fromString(msg)
@@ -134,7 +147,7 @@ func main() {
 	red := RedClient{host: "localhost:6379"}
 	_ = red.init()
 
-	Load(red, "queue")
+	Load(red, "queue", 300)
 
 	fmt.Println("DEBUGGING")
 

@@ -63,7 +63,7 @@ func (c *RedClient) checkExpired(set string) (string, error) {
 	return list[0], nil
 }
 
-func (c *RedClient) checkUpdateAndReturnExpired(set string, expirationSec int) (string, error) {
+func (c *RedClient) fetchAndUpdateExpired(set string, expirationSec int) (string, error) {
 
 	now := int64(time.Now().Unix())
 	expiresAt := now + int64(expirationSec)
@@ -72,7 +72,6 @@ func (c *RedClient) checkUpdateAndReturnExpired(set string, expirationSec int) (
 	// ZRANGEBYSCORE test.sorted_sets.future -inf 1504764565 LIMIT 0 1
 	// redis.call('ZADD', destinationSet, ARGV[2], taskID);
 
-	// #
 	luaScript := `
 		local members = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, 1)
 		if members[1] == nil then return nil end;
@@ -90,8 +89,7 @@ func (c *RedClient) checkUpdateAndReturnExpired(set string, expirationSec int) (
 	}
 
 	if resp.IsType(redis.Nil) {
-		log.Println("no items retrieved")
-		return "", nil
+		return "", errors.New("No expired members retrieved")
 	}
 
 	member, err := resp.Str()
@@ -100,31 +98,41 @@ func (c *RedClient) checkUpdateAndReturnExpired(set string, expirationSec int) (
 	}
 
 	return member, nil
-
 }
 
-func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, destinationSet string, expirationSec int) (string, error) {
+func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, expirationSec int) (string, error) {
 
 	expiresAt := int64(time.Now().Unix()) + int64(expirationSec)
 	score := strconv.FormatInt(expiresAt, 10)
 
+	// TODO: Check if this works on a redis cluster, specifically because we
+	// SET an item on a key that was not passed (we found it)
+
 	luaScript := `
-		local value = redis.call('RPOP', KEYS[1]);
+		local queueID = ARGV[1];
+		local score = ARGV[2];
+		local receivedList = KEYS[1];
+		local destinationSet = KEYS[2];
+
+		local value = redis.call('RPOP', receivedList);
 		if value == false then
 			local errorTable = {};
 			errorTable["err"] = "No item in queue";
 			return errorTable;
 		end
+
 		local jsonObj = cjson.decode(value);
 		local taskID = jsonObj['id'];
-		local destinationKey = KEYS[1] .. "." .. taskID;
+		local destinationKey = queueID .. "." .. taskID;
 		redis.call('SET', destinationKey, value);
-		local destinationSet = ARGV[1];
-		local count = redis.call('ZADD', destinationSet, ARGV[2], taskID);
-		return {taskID, value};
+		local count = redis.call('ZADD', destinationSet, score, taskID);
+		return {taskID, destinationKey, value};
 		`
 
-	resp := c.clientpool.Cmd("EVAL", luaScript, 1, queueID, destinationSet, score)
+	receivedList := queueID + ".received"
+	destinationSet := queueID + ".running"
+
+	resp := c.clientpool.Cmd("EVAL", luaScript, 2, receivedList, destinationSet, queueID, score)
 	if err := resp.Err; err != nil {
 		if err.Error() == "No item in queue" {
 			return "", err
@@ -134,10 +142,11 @@ func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, destinationSet strin
 	}
 
 	result, _ := resp.Array()
-	taskID, _ := result[0].Int()
-	msg, _ := result[1].Str()
+	taskID, _ := result[0].Str()
+	destinationKey, _ := result[1].Str()
+	msg, _ := result[2].Str()
 
-	log.Printf("COMPLETED %d, %s", taskID, msg)
+	log.Printf("COMPLETED: Set task (%s) on key %s, body: %s", taskID, destinationKey, msg)
 	return msg, nil
 }
 
@@ -183,12 +192,25 @@ func (c *RedClient) brpop(key string) string {
 
 func (c *RedClient) brpoplpush(from string, to string) string {
 
-	log.Printf("Doing: BRPOP %s %s 0"+from, to)
+	log.Printf("Doing: BRPOPLPUSH %s %s 0", from, to)
 	msg, err := c.clientpool.Cmd("BRPOPLPUSH", from, to, 0).Str()
 	if err != nil {
 		log.Panic(err)
 	}
 	return msg
+}
+
+func (c *RedClient) get(key string) (string, error) {
+
+	log.Printf("Doing: GET %s", key)
+	resp := c.clientpool.Cmd("GET", key)
+	if err := resp.Err; err != nil {
+		log.Panic(err)
+	}
+	if resp.IsType(redis.Nil) {
+		return "", errors.New("Nothing found at key")
+	}
+	return resp.Str()
 }
 
 func (c *RedClient) set(key string, value string) (bool, error) {
