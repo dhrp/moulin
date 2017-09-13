@@ -108,6 +108,9 @@ func (c *RedClient) popQueueAndSaveKeyToSet(queueID string, expirationSec int) (
 	// TODO: Check if this works on a redis cluster, specifically because we
 	// SET an item on a key that was not passed (we found it)
 
+	// what we can do, is get the expected taskID from the previous brpoplpush
+	// and compare that to what we get back. That guarantees that we can pass the task
+
 	luaScript := `
 		local queueID = ARGV[1];
 		local score = ARGV[2];
