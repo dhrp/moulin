@@ -6,43 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/mediocregopher/radix.v2/pool"
 	"github.com/mediocregopher/radix.v2/redis"
 )
-
-// RedClient Basic client class to group Redis functions
-type RedClient struct {
-	clientpool *pool.Pool
-	host       string
-	client     *redis.Client
-}
-
-func (c *RedClient) init() *RedClient {
-
-	df := func(network, addr string) (*redis.Client, error) {
-		client, err := redis.Dial(network, addr)
-		if err != nil {
-			return nil, err
-		}
-		// TODO: Review if we need a password
-		// set password with CONFIG SET requirepass "nevermind"
-		// if err = client.Cmd("AUTH", "nevermind").Err; err != nil {
-		// 	client.Close()
-		// 	return nil, err
-		// }
-		return client, nil
-	}
-
-	client, err := pool.NewCustom("tcp", c.host, 10, df)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println("redis client connected successfully with radix driver")
-	c.clientpool = client
-
-	return c
-}
 
 func (c *RedClient) checkExpired(set string) (string, error) {
 

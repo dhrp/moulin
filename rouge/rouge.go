@@ -1,46 +1,51 @@
 package rouge
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/mediocregopher/radix.v2/pool"
+	"github.com/mediocregopher/radix.v2/redis"
 )
 
-// TaskMessage is the 'message' format used on our queue
-type TaskMessage struct {
-	ID   string   `json:"id"`
-	Body string   `json:"body"`
-	Envs []string `json:"envs"`
+// RedClient Basic client class to group Redis functions
+type RedClient struct {
+	clientpool *pool.Pool
+	host       string
+	client     *redis.Client
 }
 
-func (t *TaskMessage) toString() string {
-	b, err := json.Marshal(t)
-	if err != nil {
-		log.Panic("error:", err)
+func (red *RedClient) init() *RedClient {
+
+	df := func(network, addr string) (*redis.Client, error) {
+		client, err := redis.Dial(network, addr)
+		if err != nil {
+			return nil, err
+		}
+		// TODO: Review if we need a password
+		// set password with CONFIG SET requirepass "nevermind"
+		// if err = client.Cmd("AUTH", "nevermind").Err; err != nil {
+		// 	client.Close()
+		// 	return nil, err
+		// }
+		return client, nil
 	}
-	return string(b)
-}
 
-func (t *TaskMessage) fromString(jsonStr string) *TaskMessage {
-
-	err := json.Unmarshal([]byte(jsonStr), &t)
+	client, err := pool.NewCustom("tcp", red.host, 10, df)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
-	return t
-}
 
-func newScore() string {
-	// determine the score (when task should expire)
-	timestamp := int64(time.Now().Unix())
-	expires := timestamp + 300 // 5 min
-	return strconv.FormatInt(expires, 10)
+	log.Println("redis client connected successfully with radix driver")
+	red.clientpool = client
+
+	return red
 }
 
 // Load loads a message from the queue, and mark it as processing
-func Load(red RedClient, queueID string, expirationSec int) TaskMessage {
+func (red *RedClient) Load(queueID string, expirationSec int) TaskMessage {
 
 	log.Println("**********")
 	log.Println("LOAD START")
@@ -83,7 +88,7 @@ func Load(red RedClient, queueID string, expirationSec int) TaskMessage {
 	if err != nil {
 		// retry.
 		log.Println("Didn't find an item on the received queue (exception), will try to pop a new one from incoming queue")
-		Load(red, queueID, expirationSec)
+		red.Load(queueID, expirationSec)
 	}
 
 	taskMessage.fromString(msg)
@@ -95,7 +100,7 @@ func Load(red RedClient, queueID string, expirationSec int) TaskMessage {
 }
 
 // Heartbeat updates the status of a message
-func Heartbeat(red RedClient, queueID string, taskID string, expirationSec int) bool {
+func (red *RedClient) Heartbeat(queueID string, taskID string, expirationSec int) bool {
 
 	log.Println("***************")
 	log.Println("HEARTBEAT START")
@@ -141,17 +146,18 @@ func Complete(red RedClient, queueID string, taskID string) bool {
 	return true
 }
 
-func main() {
-
-	red := RedClient{host: "localhost:6379"}
-	_ = red.init()
-
-	Load(red, "queue", 300)
-
-	fmt.Println("DEBUGGING")
-
-	// _ = red.set(taskId, taskMessage)
-
-	// fmt.Println(taskMessage.body)
-
-}
+//
+// func main() {
+//
+// 	red := RedClient{host: "localhost:6379"}
+// 	_ = red.init()
+//
+// 	red.Load("queue", 300)
+//
+// 	fmt.Println("DEBUGGING")
+//
+// 	// _ = red.set(taskId, taskMessage)
+//
+// 	// fmt.Println(taskMessage.body)
+//
+// }

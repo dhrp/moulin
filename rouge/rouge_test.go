@@ -153,7 +153,7 @@ func (suite *RedClientTestSuite) TestLoadPhase() {
 	suite.red.lpush("test.queue", taskMessage2.toString())
 
 	// load one back
-	result := Load(suite.red, "test.queue", 300)
+	result := suite.red.Load("test.queue", 300)
 	suite.Equal(taskMessage1, result, "The first message put on the queue is not what came back")
 
 	// test if it is now also in the sorted set.
@@ -171,7 +171,7 @@ func (suite *RedClientTestSuite) TestLoadPhase() {
 	updated, _ := suite.red.zadd("test.queue.running", expiredScore, result.ID)
 	suite.Equal(0, updated, "A member was added, but not that was not expected")
 
-	expiredTaskMessage := Load(suite.red, "test.queue", 300)
+	expiredTaskMessage := suite.red.Load("test.queue", 300)
 	suite.Equal(taskMessage1, expiredTaskMessage, "The what was on the key of the expired member is not what was expected")
 
 	log.Println("**********")
@@ -195,10 +195,10 @@ func (suite *RedClientTestSuite) TestHeartbeatPhase() {
 
 	expirationSec := 300 // 5 min
 
-	result := Heartbeat(suite.red, queueID, member, expirationSec)
+	result := suite.red.Heartbeat(queueID, member, expirationSec)
 	suite.True(result, "Heartbeat didn't return 1, item could not be updated")
 
-	result = Heartbeat(suite.red, queueID, member, expirationSec)
+	result = suite.red.Heartbeat(queueID, member, expirationSec)
 	suite.False(result, "Heartbeat should have returned false because we updated it with the same score")
 }
 
@@ -230,11 +230,11 @@ func (suite *RedClientTestSuite) TestRedEndToEnd() {
 	suite.red.lpush(queueID, taskMessage.toString())
 
 	// Load it from the queue
-	msg := Load(suite.red, queueID, 300)
+	msg := suite.red.Load(queueID, 300)
 	taskID := msg.ID
 
 	// Send a heartbeat
-	status := Heartbeat(suite.red, queueID, taskID, 400)
+	status := suite.red.Heartbeat(queueID, taskID, 400)
 	suite.True(status, "Heartbeat failed to updated the item...")
 
 	// Mark the item as complete
