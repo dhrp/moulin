@@ -10,14 +10,14 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 )
 
-// RedClient Basic client class to group Redis functions
-type RedClient struct {
+// RougeClient Basic client class to group Redis functions
+type RougeClient struct {
+	Host       string
 	clientpool *pool.Pool
-	host       string
 	client     *redis.Client
 }
 
-func (red *RedClient) init() *RedClient {
+func (red *RougeClient) Init() *RougeClient {
 
 	df := func(network, addr string) (*redis.Client, error) {
 		client, err := redis.Dial(network, addr)
@@ -33,7 +33,7 @@ func (red *RedClient) init() *RedClient {
 		return client, nil
 	}
 
-	client, err := pool.NewCustom("tcp", red.host, 10, df)
+	client, err := pool.NewCustom("tcp", red.Host, 10, df)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func (red *RedClient) init() *RedClient {
 }
 
 // Load loads a message from the queue, and mark it as processing
-func (red *RedClient) Load(queueID string, expirationSec int) TaskMessage {
+func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 
 	log.Println("**********")
 	log.Println("LOAD START")
@@ -62,7 +62,7 @@ func (red *RedClient) Load(queueID string, expirationSec int) TaskMessage {
 	if member != "" {
 		msg, errIn := red.get(queueID + "." + member)
 		if errIn == nil {
-			taskMessage.fromString(msg)
+			taskMessage.FromString(msg)
 			return taskMessage
 		}
 		if errIn.Error() == "Nothing found at key" {
@@ -75,12 +75,13 @@ func (red *RedClient) Load(queueID string, expirationSec int) TaskMessage {
 	// the next brpoplpush, but before the popQueueAndSaveKeyToSet
 	msg, err := red.rpop(receivedList)
 	if err == nil {
-		taskMessage.fromString(msg)
+		taskMessage.FromString(msg)
 		return taskMessage
 	}
 
 	// block; wait and switch a task from the queue to the received queue
-	red.brpoplpush(queueID, receivedList)
+	debugmsg := red.brpoplpush(queueID, receivedList)
+	log.Println(debugmsg)
 
 	// fetch from received queue, save the message to it's key
 	// and add the ID to the running set
@@ -91,7 +92,7 @@ func (red *RedClient) Load(queueID string, expirationSec int) TaskMessage {
 		red.Load(queueID, expirationSec)
 	}
 
-	taskMessage.fromString(msg)
+	taskMessage.FromString(msg)
 
 	log.Println("LOAD END")
 	log.Println("**********")
@@ -100,7 +101,7 @@ func (red *RedClient) Load(queueID string, expirationSec int) TaskMessage {
 }
 
 // Heartbeat updates the status of a message
-func (red *RedClient) Heartbeat(queueID string, taskID string, expirationSec int) bool {
+func (red *RougeClient) Heartbeat(queueID string, taskID string, expirationSec int) bool {
 
 	log.Println("***************")
 	log.Println("HEARTBEAT START")
@@ -126,7 +127,7 @@ func (red *RedClient) Heartbeat(queueID string, taskID string, expirationSec int
 }
 
 // Complete marks the item as completed.
-func Complete(red RedClient, queueID string, taskID string) bool {
+func Complete(red RougeClient, queueID string, taskID string) bool {
 
 	log.Println("***************")
 	log.Println("COMPLETE START")
@@ -149,7 +150,7 @@ func Complete(red RedClient, queueID string, taskID string) bool {
 //
 // func main() {
 //
-// 	red := RedClient{host: "localhost:6379"}
+// 	red := RougeClient{host: "localhost:6379"}
 // 	_ = red.init()
 //
 // 	red.Load("queue", 300)

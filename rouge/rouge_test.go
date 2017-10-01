@@ -11,15 +11,15 @@ import (
 
 type RedClientTestSuite struct {
 	suite.Suite
-	red           RedClient
+	red           RougeClient
 	sampleMsgBody string
 }
 
 func (suite *RedClientTestSuite) SetupSuite() {
 	suite.sampleMsgBody = "http://www.peskens.nl"
 
-	suite.red = RedClient{host: "localhost:6379"}
-	_ = suite.red.init()
+	suite.red = RougeClient{Host: "localhost:6379"}
+	_ = suite.red.Init()
 }
 
 // GenerateMessage generate a json message for piping through the system.
@@ -40,14 +40,15 @@ func (suite *RedClientTestSuite) TestpopQueueAndSaveKeyToSet() {
 
 	// prepare one item on the queue
 	taskMessage := GenerateMessage(suite.sampleMsgBody)
-	suite.red.lpush("test.queue.received", taskMessage.toString())
+	taskMessageStr := taskMessage.ToString()
+	suite.red.lpush("test.queue.received", taskMessageStr)
 
 	queueID := "test.queue"
 	expirationSec := 333
 
 	// positive case; item exists
 	msg, _ := suite.red.popQueueAndSaveKeyToSet(queueID, expirationSec)
-	suite.Equal(taskMessage.toString(), msg, "message from popQueueAndSaveKeyToSet didn't match expectation")
+	suite.Equal(taskMessage.ToString(), msg, "message from popQueueAndSaveKeyToSet didn't match expectation")
 
 	// negative case; no item on received queue
 	_, err := suite.red.popQueueAndSaveKeyToSet("empty", expirationSec)
@@ -59,11 +60,11 @@ func (suite *RedClientTestSuite) TestRPOP() {
 	log.Println("*** testing TestRPOP")
 
 	taskMessage := GenerateMessage(suite.sampleMsgBody)
-	suite.red.lpush("test.queue.received", taskMessage.toString())
+	suite.red.lpush("test.queue.received", taskMessage.ToString())
 
 	msg, _ := suite.red.rpop("test.queue.received")
 
-	suite.Equal(taskMessage.toString(), msg, "what was pushed is not what was popped")
+	suite.Equal(taskMessage.ToString(), msg, "what was pushed is not what was popped")
 
 	msg, _ = suite.red.rpop("test.queue.doesntexist")
 	suite.Equal(msg, "", "what was pushed is not what was popped")
@@ -73,7 +74,7 @@ func (suite *RedClientTestSuite) TestRPOP() {
 func (suite *RedClientTestSuite) TestPushAndPopQueue() {
 
 	taskMessage := GenerateMessage(suite.sampleMsgBody)
-	taskMessageStr := taskMessage.toString()
+	taskMessageStr := taskMessage.ToString()
 
 	suite.NotEqual("{}", taskMessageStr, "Err: json unmarshalled empty!")
 
@@ -147,10 +148,10 @@ func (suite *RedClientTestSuite) TestLoadPhase() {
 
 	// prepare two items on the queue
 	taskMessage1 := GenerateMessage(suite.sampleMsgBody)
-	suite.red.lpush("test.queue", taskMessage1.toString())
+	suite.red.lpush("test.queue", taskMessage1.ToString())
 
 	taskMessage2 := GenerateMessage(suite.sampleMsgBody)
-	suite.red.lpush("test.queue", taskMessage2.toString())
+	suite.red.lpush("test.queue", taskMessage2.ToString())
 
 	// load one back
 	result := suite.red.Load("test.queue", 300)
@@ -227,7 +228,7 @@ func (suite *RedClientTestSuite) TestRedEndToEnd() {
 
 	// Prep an item on the queue
 	taskMessage := GenerateMessage("testing end to end")
-	suite.red.lpush(queueID, taskMessage.toString())
+	suite.red.lpush(queueID, taskMessage.ToString())
 
 	// Load it from the queue
 	msg := suite.red.Load(queueID, 300)

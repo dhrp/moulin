@@ -1,6 +1,5 @@
 package rouge
 
-
 import (
 	"encoding/json"
 	"log"
@@ -15,7 +14,7 @@ type TaskMessage struct {
 	Envs []string `json:"envs"`
 }
 
-func (t *TaskMessage) toString() string {
+func (t *TaskMessage) ToString() string {
 	b, err := json.Marshal(t)
 	if err != nil {
 		log.Panic("error:", err)
@@ -23,7 +22,7 @@ func (t *TaskMessage) toString() string {
 	return string(b)
 }
 
-func (t *TaskMessage) fromString(jsonStr string) *TaskMessage {
+func (t *TaskMessage) FromString(jsonStr string) *TaskMessage {
 
 	err := json.Unmarshal([]byte(jsonStr), &t)
 	if err != nil {
