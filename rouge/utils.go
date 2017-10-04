@@ -22,13 +22,13 @@ func (t *TaskMessage) ToString() string {
 	return string(b)
 }
 
-func (t *TaskMessage) FromString(jsonStr string) *TaskMessage {
-
-	err := json.Unmarshal([]byte(jsonStr), &t)
+// Obj parser
+func (t *TaskMessage) FromString(jsonStr []byte) (*TaskMessage, error) {
+	err := json.Unmarshal(jsonStr, &t)
 	if err != nil {
-		log.Panic(err)
+		return nil, err
 	}
-	return t
+	return t, nil
 }
 
 func newScore() string {

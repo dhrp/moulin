@@ -1,3 +1,5 @@
 c
 s
 debug
+**/*.debug
+**/*.test

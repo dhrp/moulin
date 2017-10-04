@@ -62,7 +62,7 @@ func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 	if member != "" {
 		msg, errIn := red.get(queueID + "." + member)
 		if errIn == nil {
-			taskMessage.FromString(msg)
+			taskMessage.FromString([]byte(msg))
 			return taskMessage
 		}
 		if errIn.Error() == "Nothing found at key" {
@@ -75,7 +75,7 @@ func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 	// the next brpoplpush, but before the popQueueAndSaveKeyToSet
 	msg, err := red.rpop(receivedList)
 	if err == nil {
-		taskMessage.FromString(msg)
+		taskMessage.FromString([]byte(msg))
 		return taskMessage
 	}
 
@@ -92,7 +92,7 @@ func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 		red.Load(queueID, expirationSec)
 	}
 
-	taskMessage.FromString(msg)
+	taskMessage.FromString([]byte(msg))
 
 	log.Println("LOAD END")
 	log.Println("**********")
@@ -147,18 +147,14 @@ func Complete(red RougeClient, queueID string, taskID string) bool {
 	return true
 }
 
-//
-// func main() {
-//
-// 	red := RougeClient{host: "localhost:6379"}
-// 	_ = red.init()
-//
-// 	red.Load("queue", 300)
-//
-// 	fmt.Println("DEBUGGING")
-//
-// 	// _ = red.set(taskId, taskMessage)
-//
-// 	// fmt.Println(taskMessage.body)
-//
-// }
+// AddTask adds a new task to a queue.
+func (red *RougeClient) AddTask(queueID string, task TaskMessage) string {
+
+	taskMessageStr := task.ToString()
+	newlength, err := red.lpush(queueID, taskMessageStr)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return strconv.Itoa(newlength)
+}
