@@ -17,7 +17,8 @@ type RougeClient struct {
 	client     *redis.Client
 }
 
-func (red *RougeClient) Init() *RougeClient {
+// Initializes the RougeClient
+func (red *RougeClient) Init() error {
 
 	df := func(network, addr string) (*redis.Client, error) {
 		client, err := redis.Dial(network, addr)
@@ -41,7 +42,7 @@ func (red *RougeClient) Init() *RougeClient {
 	log.Println("redis client connected successfully with radix driver")
 	red.clientpool = client
 
-	return red
+	return nil
 }
 
 // Load loads a message from the queue, and mark it as processing
@@ -63,6 +64,8 @@ func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 		msg, errIn := red.get(queueID + "." + member)
 		if errIn == nil {
 			taskMessage.FromString([]byte(msg))
+			log.Println("LOAD END:  Returning expired member")
+			log.Println("**********")
 			return taskMessage
 		}
 		if errIn.Error() == "Nothing found at key" {
@@ -76,6 +79,8 @@ func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 	msg, err := red.rpop(receivedList)
 	if err == nil {
 		taskMessage.FromString([]byte(msg))
+		log.Println("LOAD END:  Returning lost member (member on received queue)")
+		log.Println("**********")
 		return taskMessage
 	}
 
@@ -94,7 +99,7 @@ func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 
 	taskMessage.FromString([]byte(msg))
 
-	log.Println("LOAD END")
+	log.Println("LOAD END:  Returning new member from the incoming queue")
 	log.Println("**********")
 
 	return taskMessage

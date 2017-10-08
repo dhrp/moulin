@@ -2,12 +2,15 @@ package main
 
 import (
 	// "errors"
+	"context"
 	"fmt"
 	"log"
 
-	"github.com/nerdalize/moulin/rouge"
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
+
+	pb "github.com/nerdalize/moulin/helloworld"
+	"github.com/nerdalize/moulin/rouge"
 )
 
 func createTaskFromJSON(json []byte) (*rouge.TaskMessage, error) {
@@ -27,4 +30,9 @@ func createTaskFromJSON(json []byte) (*rouge.TaskMessage, error) {
 	log.Println(result)
 
 	return task, nil
+}
+
+// SayHello implements helloworld.GreeterServer
+func SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	return &pb.HelloReply{Message: "You've connected"}, nil
 }

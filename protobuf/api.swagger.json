@@ -1,0 +1,117 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "api.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "Healthz",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/APIStatusMessage"
+            }
+          }
+        },
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/queue/{queueID}": {
+      "get": {
+        "operationId": "LoadTask",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/APITask"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      },
+      "post": {
+        "operationId": "PushTask",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/APIStatusMessage"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/APITask"
+            }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "APIStatusMessage": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    },
+    "APITask": {
+      "type": "object",
+      "properties": {
+        "queueID": {
+          "type": "string"
+        },
+        "taskID": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        }
+      },
+      "title": "Task is the definition of a task"
+    }
+  }
+}

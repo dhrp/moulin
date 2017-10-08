@@ -2,62 +2,40 @@ package main
 
 import (
 	"log"
-	"os"
 
+	"github.com/nerdalize/moulin/certificates"
+	pb "github.com/nerdalize/moulin/protobuf"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	pb "github.com/nerdalize/moulin/helloworld"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/grpclog"
 )
 
 const (
-	// address     = "localhost:50051"
-	// address     = "dev.nlze.nl:50051"
+	address     = "localhost:8042"
 	defaultName = "world"
-	
-	defaultServer = "localhost"
-	defaultPort = "50051"
 )
 
 func main() {
-	// Set up a connection to the server.
-	server := defaultServer
-	port := defaultPort
+	keyPair, certPool := certificates.GetCert()
+	_ = keyPair
 
-	if len(os.Args) > 1 {
-		server = os.Args[1]
-	}
-	if len(os.Args) > 2 {
-		port = os.Args[2]
-	}
-
-	remoteServer := server + ":" + port
-
-	conn, err := grpc.Dial(remoteServer, grpc.WithInsecure())
+	var opts []grpc.DialOption
+	creds := credentials.NewClientTLSFromCert(certPool, "localhost:8042")
+	opts = append(opts, grpc.WithTransportCredentials(creds))
+	conn, err := grpc.Dial(address, opts...)
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		grpclog.Fatalf("fail to dial: %v", err)
 	}
 	defer conn.Close()
-	c := pb.NewGreeterClient(conn)
 
+	c := pb.NewAPIClient(conn)
 
-	// Contact the server and print out its response.
-	name := defaultName
-
-	if len(os.Args) > 1 {
-		name = os.Args[1]
-	}
-
-	r, err := c.SayHello(context.Background(), &pb.HelloRequest{Name: name})
+	r, err := c.LoadTask(context.Background(), &pb.RequestMessage{QueueID: "foobar"})
+	// r, err := c.Healthz(context.Background(), &empty.Empty{})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	log.Printf("Greeting: %s", r.Message)
 
-
-	// second function
-	r, err = c.SayHelloAgain(context.Background(), &pb.HelloRequest{Name: name})
-	if err != nil {
-	        log.Fatalf("could not greet: %v", err)
-	}
-	log.Printf("Greeting: %s", r.Message)
+	log.Printf("Health: %s", r.TaskID)
 }

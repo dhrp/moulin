@@ -9,6 +9,14 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 )
 
+func (c *RougeClient) Info() (string, error) {
+	resp := c.clientpool.Cmd("INFO", "server")
+	if err := resp.Err; err != nil {
+		log.Panic(err)
+	}
+	return resp.Str()
+}
+
 func (c *RougeClient) checkExpired(set string) (string, error) {
 
 	now := int64(time.Now().Unix())
@@ -35,9 +43,6 @@ func (c *RougeClient) fetchAndUpdateExpired(set string, expirationSec int) (stri
 	expiresAt := now + int64(expirationSec)
 	score := strconv.FormatInt(expiresAt, 10)
 
-	// ZRANGEBYSCORE test.sorted_sets.future -inf 1504764565 LIMIT 0 1
-	// redis.call('ZADD', destinationSet, ARGV[2], taskID);
-
 	luaScript := `
 		local members = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, 1)
 		if members[1] == nil then return nil end;
@@ -46,9 +51,7 @@ func (c *RougeClient) fetchAndUpdateExpired(set string, expirationSec int) (stri
 		return member
 	`
 
-	log.Printf("Doing: ZRANGEBYSCORE %s -inf %d LIMIT 0 1", set, now)
-	log.Printf("Doing: ZADD %s <returnedmember> %s", set, score)
-	// resp := c.clientpool.Cmd("ZRANGEBYSCORE", set, "-inf", now, "LIMIT", 0, 1)
+	log.Printf("Doing: EVAL <luascript for get expired> with set: %v, now: %v score: %v", set, now, score)
 	resp := c.clientpool.Cmd("EVAL", luaScript, 1, set, now, score)
 	if err := resp.Err; err != nil {
 		log.Panic(err)

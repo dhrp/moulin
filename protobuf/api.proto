@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package API;
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+
+// The greeting service definition.
+service API {
+
+  rpc Healthz (google.protobuf.Empty) returns (StatusMessage) {
+    option (google.api.http) = {
+      get: "/healthz"
+    };
+  }
+
+  rpc PushTask (Task) returns (StatusMessage) {
+    option (google.api.http) = {
+      post: "/v1/queue/{queueID}"
+      body: "*"
+    };
+  }
+
+  rpc LoadTask (RequestMessage) returns (Task) {
+    option (google.api.http) = {
+      get: "/v1/queue/{queueID}"
+    };
+  }
+}
+
+// Task is the definition of a task
+message Task {
+  string queueID = 1;
+  string taskID = 2;
+  string body = 3;
+}
+
+message RequestMessage {
+  string queueID = 1;
+}
+
+message StatusMessage {
+  string status = 1;
+  string detail = 2;
+}

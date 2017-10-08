@@ -36,6 +36,11 @@ func GenerateMessage(body string) TaskMessage {
 	return taskMessage
 }
 
+func (suite *RedClientTestSuite) TestBasicConnection() {
+	info, _ := suite.red.Info()
+	suite.NotEmpty(info, "expected redis info")
+}
+
 func (suite *RedClientTestSuite) TestpopQueueAndSaveKeyToSet() {
 
 	// prepare one item on the queue
@@ -135,6 +140,10 @@ func (suite *RedClientTestSuite) TestSortedSet() {
 	// member, _ := suite.red.checkExpired(set)
 	member, _ := suite.red.fetchAndUpdateExpired("test.sorted_sets.future", 300)
 	suite.Equal("", member, "Got an item ?!?")
+
+	// Check what happens if the database was not initialized and the set is empty
+	suite.red.del("nonexistent")
+	_, _ = suite.red.fetchAndUpdateExpired("nonexistent", 300)
 
 	log.Println("### Testing Sorted Set End")
 
@@ -258,6 +267,7 @@ func (suite *RedClientTestSuite) TearDownTest() {
 	//
 	suite.red.del("test.sorted_sets.running")
 	suite.red.del("test.sorted_sets.future")
+	suite.red.del("nonexistent")
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {
