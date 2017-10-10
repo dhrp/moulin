@@ -1,6 +1,7 @@
 package rouge
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -45,8 +46,25 @@ func (red *RougeClient) Init() error {
 	return nil
 }
 
+func (red *RougeClient) Info() (string, error) {
+
+	if red.clientpool == nil || red.client == nil {
+		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
+	}
+
+	resp := red.clientpool.Cmd("INFO", "server")
+	if err := resp.Err; err != nil {
+		log.Panic(err)
+	}
+	return resp.Str()
+}
+
 // Load loads a message from the queue, and mark it as processing
 func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
+
+	if red.clientpool == nil || red.client == nil {
+		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
+	}
 
 	log.Println("**********")
 	log.Println("LOAD START")
@@ -108,6 +126,10 @@ func (red *RougeClient) Load(queueID string, expirationSec int) TaskMessage {
 // Heartbeat updates the status of a message
 func (red *RougeClient) Heartbeat(queueID string, taskID string, expirationSec int) bool {
 
+	if red.clientpool == nil || red.client == nil {
+		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
+	}
+
 	log.Println("***************")
 	log.Println("HEARTBEAT START")
 
@@ -134,6 +156,10 @@ func (red *RougeClient) Heartbeat(queueID string, taskID string, expirationSec i
 // Complete marks the item as completed.
 func Complete(red RougeClient, queueID string, taskID string) bool {
 
+	if red.clientpool == nil || red.client == nil {
+		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
+	}
+
 	log.Println("***************")
 	log.Println("COMPLETE START")
 
@@ -153,7 +179,11 @@ func Complete(red RougeClient, queueID string, taskID string) bool {
 }
 
 // AddTask adds a new task to a queue.
-func (red *RougeClient) AddTask(queueID string, task TaskMessage) string {
+func (red *RougeClient) AddTask(queueID string, task TaskMessage) (string, error) {
+
+	if red.clientpool == nil || red.client == nil {
+		return "", errors.New("Connection to Redis not initialized. Did you forget to initialize?")
+	}
 
 	taskMessageStr := task.ToString()
 	newlength, err := red.lpush(queueID, taskMessageStr)
@@ -161,5 +191,5 @@ func (red *RougeClient) AddTask(queueID string, task TaskMessage) string {
 		log.Panic(err)
 	}
 
-	return strconv.Itoa(newlength)
+	return strconv.Itoa(newlength), nil
 }

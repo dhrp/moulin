@@ -42,9 +42,11 @@ func (s *server) Init() {
 }
 
 func (s *server) Healthz(ctx context.Context, in *empty.Empty) (*pb.StatusMessage, error) {
+	result, _ := rougeClient.Info()
+
 	return &pb.StatusMessage{
 		Status: "OK",
-		Detail: "system is up",
+		Detail: result,
 	}, nil
 }
 
@@ -62,12 +64,11 @@ func (s *server) PushTask(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 
 func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task, error) {
 	queueID := in.QueueID
-	task := s.rouge.Load(queueID, 300)
+	taskMessage := s.rouge.Load(queueID, 300)
 
 	return &pb.Task{
-		QueueID: "foobar",
-		TaskID:  task.ID,
-		// Body:    info,
+		TaskID: taskMessage.ID,
+		Body:   taskMessage.Body,
 	}, nil
 }
 
@@ -82,6 +83,7 @@ func makeGRPCServer(certPool *x509.CertPool, rouge *rouge.RougeClient) *grpc.Ser
 	//setup grpc server
 	s := grpc.NewServer(opts...)
 	// pb.RegisterEchoServiceServer(s, &server{})
+
 	pb.RegisterAPIServer(s, &server{rouge: rouge})
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -131,7 +133,8 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 
 func main() {
 
-	rougeClient := &rouge.RougeClient{Host: "localhost:6379"}
+	rougeClient = &rouge.RougeClient{Host: "localhost:6379"}
+	rougeClient.Init()
 
 	keyPair, certPool := certificates.GetCert()
 

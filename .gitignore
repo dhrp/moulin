@@ -3,3 +3,6 @@ s
 debug
 **/*.debug
 **/*.test
+**/.DS_Store
+clientcmd
+moulin

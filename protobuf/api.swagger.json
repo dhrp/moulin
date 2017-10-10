@@ -109,6 +109,12 @@
         },
         "body": {
           "type": "string"
+        },
+        "envs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "title": "Task is the definition of a task"

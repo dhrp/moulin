@@ -1,14 +1,15 @@
 package main
 
 import (
-	"context"
 	"log"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	pb "github.com/nerdalize/moulin/protobuf"
 	"github.com/nerdalize/moulin/rouge"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/context"
+
+	pb "github.com/nerdalize/moulin/protobuf"
 )
 
 type MainTestSuite struct {
@@ -17,10 +18,8 @@ type MainTestSuite struct {
 }
 
 func (suite *MainTestSuite) SetupSuite() {
-
-	rougeClient := &rouge.RougeClient{Host: "localhost:6379"}
+	rougeClient = &rouge.RougeClient{Host: "localhost:6379"}
 	rougeClient.Init()
-	suite.server = &server{rouge: rougeClient}
 }
 
 func (suite *MainTestSuite) TestHealthz() {
@@ -34,11 +33,13 @@ func (suite *MainTestSuite) TestPushTask() {
 
 	// task := &rouge.TaskMessage{ID: "ASDF", Body: "empty"}
 
-	req := &pb.Task{QueueID: "foobar", TaskID: "ASDF"}
-	resp, _ := suite.server.PushTask(context.Background(), req)
+	var status *pb.StatusMessage
+	ctx := context.Background()
 
-	log.Println(resp)
-	// suite.Equal(msg, "", "what was pushed is not what was popped")
+	req := &pb.Task{QueueID: "foobar", TaskID: "ASDF"}
+	status, _ = suite.server.PushTask(ctx, req)
+
+	suite.Equal("OK", status.Status, "Didn't get OK status from PushTask")
 }
 
 func (suite *MainTestSuite) TestLoadTask() {

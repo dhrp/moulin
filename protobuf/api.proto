@@ -30,9 +30,10 @@ service API {
 
 // Task is the definition of a task
 message Task {
-  string queueID = 1;
+  string queueID = 1;       // needed to pass the queueID to push task to
   string taskID = 2;
-  string body = 3;
+  string body = 3;          // perhaps should be called argument(s)
+  repeated string envs = 4;
 }
 
 message RequestMessage {

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/nerdalize/moulin/certificates"
 	pb "github.com/nerdalize/moulin/protobuf"
 	"golang.org/x/net/context"
@@ -31,11 +32,18 @@ func main() {
 
 	c := pb.NewAPIClient(conn)
 
-	r, err := c.LoadTask(context.Background(), &pb.RequestMessage{QueueID: "foobar"})
-	// r, err := c.Healthz(context.Background(), &empty.Empty{})
+	// first do status
+	r, err := c.Healthz(context.Background(), &empty.Empty{})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
+	log.Printf("Health: %s", r.Status)
 
-	log.Printf("Health: %s", r.TaskID)
+	// then load a message
+	t, err := c.LoadTask(context.Background(), &pb.RequestMessage{QueueID: "foobar"})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Task: %s", t.TaskID)
+
 }

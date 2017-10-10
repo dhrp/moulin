@@ -9,14 +9,6 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 )
 
-func (c *RougeClient) Info() (string, error) {
-	resp := c.clientpool.Cmd("INFO", "server")
-	if err := resp.Err; err != nil {
-		log.Panic(err)
-	}
-	return resp.Str()
-}
-
 func (c *RougeClient) checkExpired(set string) (string, error) {
 
 	now := int64(time.Now().Unix())
