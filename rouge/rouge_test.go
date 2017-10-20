@@ -11,14 +11,14 @@ import (
 
 type RedClientTestSuite struct {
 	suite.Suite
-	red           RougeClient
+	red           Client
 	sampleMsgBody string
 }
 
 func (suite *RedClientTestSuite) SetupSuite() {
 	suite.sampleMsgBody = "http://www.peskens.nl"
 
-	suite.red = RougeClient{Host: "localhost:6379"}
+	suite.red = Client{Host: "localhost:6379"}
 	_ = suite.red.Init()
 }
 

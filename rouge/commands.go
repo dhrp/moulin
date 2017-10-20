@@ -9,7 +9,7 @@ import (
 	"github.com/mediocregopher/radix.v2/redis"
 )
 
-func (c *RougeClient) checkExpired(set string) (string, error) {
+func (c *Client) checkExpired(set string) (string, error) {
 
 	now := int64(time.Now().Unix())
 
@@ -29,7 +29,7 @@ func (c *RougeClient) checkExpired(set string) (string, error) {
 	return list[0], nil
 }
 
-func (c *RougeClient) fetchAndUpdateExpired(set string, expirationSec int) (string, error) {
+func (c *Client) fetchAndUpdateExpired(set string, expirationSec int) (string, error) {
 
 	now := int64(time.Now().Unix())
 	expiresAt := now + int64(expirationSec)
@@ -61,7 +61,7 @@ func (c *RougeClient) fetchAndUpdateExpired(set string, expirationSec int) (stri
 	return member, nil
 }
 
-func (c *RougeClient) popQueueAndSaveKeyToSet(queueID string, expirationSec int) (string, error) {
+func (c *Client) popQueueAndSaveKeyToSet(queueID string, expirationSec int) (string, error) {
 
 	expiresAt := int64(time.Now().Unix()) + int64(expirationSec)
 	score := strconv.FormatInt(expiresAt, 10)
@@ -113,7 +113,7 @@ func (c *RougeClient) popQueueAndSaveKeyToSet(queueID string, expirationSec int)
 	return msg, nil
 }
 
-func (c *RougeClient) del(key string) int {
+func (c *Client) del(key string) int {
 	count, err := c.clientpool.Cmd("DEL", key).Int()
 	if err != nil {
 		log.Panic(err)
@@ -121,7 +121,7 @@ func (c *RougeClient) del(key string) int {
 	return count
 }
 
-func (c *RougeClient) lpush(key string, value string) (int, error) {
+func (c *Client) lpush(key string, value string) (int, error) {
 
 	log.Printf("Doing: LPUSH %s %s", key, value)
 	newLength, err := c.clientpool.Cmd("LPUSH", key, value).Int()
@@ -131,7 +131,7 @@ func (c *RougeClient) lpush(key string, value string) (int, error) {
 	return newLength, err
 }
 
-func (c *RougeClient) rpop(key string) (string, error) {
+func (c *Client) rpop(key string) (string, error) {
 
 	log.Println("Doing: RPOP " + key)
 	resp := c.clientpool.Cmd("RPOP", key)
@@ -142,7 +142,7 @@ func (c *RougeClient) rpop(key string) (string, error) {
 	return resp.Str()
 }
 
-func (c *RougeClient) brpop(key string) string {
+func (c *Client) brpop(key string) string {
 
 	log.Println("Doing: BRPOP " + key)
 	val, err := c.clientpool.Cmd("BRPOP", key, 0).List()
@@ -153,7 +153,7 @@ func (c *RougeClient) brpop(key string) string {
 	return msg
 }
 
-func (c *RougeClient) brpoplpush(from string, to string) string {
+func (c *Client) brpoplpush(from string, to string) string {
 
 	log.Printf("Doing: BRPOPLPUSH %s %s 0", from, to)
 	msg, err := c.clientpool.Cmd("BRPOPLPUSH", from, to, 0).Str()
@@ -163,7 +163,7 @@ func (c *RougeClient) brpoplpush(from string, to string) string {
 	return msg
 }
 
-func (c *RougeClient) get(key string) (string, error) {
+func (c *Client) get(key string) (string, error) {
 
 	log.Printf("Doing: GET %s", key)
 	resp := c.clientpool.Cmd("GET", key)
@@ -176,7 +176,7 @@ func (c *RougeClient) get(key string) (string, error) {
 	return resp.Str()
 }
 
-func (c *RougeClient) set(key string, value string) (bool, error) {
+func (c *Client) set(key string, value string) (bool, error) {
 
 	log.Println("Doing: SET " + key + " " + value)
 	_, err := c.clientpool.Cmd("SET", key, value).Str()
@@ -188,7 +188,7 @@ func (c *RougeClient) set(key string, value string) (bool, error) {
 }
 
 // // ZADD Q_working_set <now>+300 queue-id.task-id
-func (c *RougeClient) zadd(set string, score string, member string) (int, error) {
+func (c *Client) zadd(set string, score string, member string) (int, error) {
 
 	log.Printf("Doing: ZADD %s %s %s", set, score, member)
 	count, err := c.clientpool.Cmd("ZADD", set, score, member).Int()
@@ -199,7 +199,7 @@ func (c *RougeClient) zadd(set string, score string, member string) (int, error)
 }
 
 // // ZADD Q_working_set <now>+300 queue-id.task-id
-func (c *RougeClient) zaddUpdate(set string, score string, member string) (int, error) {
+func (c *Client) zaddUpdate(set string, score string, member string) (int, error) {
 
 	log.Printf("Doing: ZADD %s XX CH %s %s", set, score, member)
 	// ZADD the element. XX says only update existing items, CH means return us the amount
@@ -212,7 +212,7 @@ func (c *RougeClient) zaddUpdate(set string, score string, member string) (int, 
 	return count, nil
 }
 
-func (c *RougeClient) zrevrange(set string, from int, to int) ([]string, error) {
+func (c *Client) zrevrange(set string, from int, to int) ([]string, error) {
 
 	log.Printf("Doing: ZREVRANGE %s %d %d", set, from, to)
 	members, err := c.clientpool.Cmd("ZREVRANGE", set, from, to).List()
@@ -223,7 +223,7 @@ func (c *RougeClient) zrevrange(set string, from int, to int) ([]string, error) 
 }
 
 // Do an atomic from sorted list; to sorted list operation
-func (c *RougeClient) moveMemberFromSetToSet(from string, to string, member string) (int, error) {
+func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (int, error) {
 
 	luaScript := `
 		redis.call('ZREM', KEYS[1], ARGV[1]);
