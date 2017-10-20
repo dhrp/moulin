@@ -1,5 +1,7 @@
 package main
 
+// Here we define all GRPC handlers
+
 import (
 	"crypto/tls"
 	"crypto/x509"
@@ -13,7 +15,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
 
@@ -31,68 +32,31 @@ const (
 var serveAddress string = fmt.Sprintf("%v:%d", hostname, port)
 
 type server struct {
-	rouge *rouge.RougeClient
+	rouge *rouge.Client
 }
 
-// Main RougeClient instance
-var rougeClient *rouge.RougeClient
+//
+// // Main Rouge.Client instance
+// var rougeClient *rouge.Client
+//
+// func (s *server) Init() {
+//
+// }
 
-func (s *server) Init() {
-	s.rouge = &rouge.RougeClient{}
-}
-
-func (s *server) Healthz(ctx context.Context, in *empty.Empty) (*pb.StatusMessage, error) {
-	result, _ := rougeClient.Info()
-
-	return &pb.StatusMessage{
-		Status: "OK",
-		Detail: result,
-	}, nil
-}
-
-func (s *server) PushTask(ctx context.Context, in *pb.Task) (*pb.StatusMessage, error) {
-	queueID := in.QueueID
-
-	taskMessage := rouge.TaskMessage{ID: "nonsense", Body: "empty"}
-	result := s.rouge.AddTask(queueID, taskMessage)
-
-	return &pb.StatusMessage{
-		Status: "OK",
-		Detail: result,
-	}, nil
-}
-
-func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task, error) {
-	queueID := in.QueueID
-	taskMessage := s.rouge.Load(queueID, 300)
-
-	return &pb.Task{
-		TaskID: taskMessage.ID,
-		Body:   taskMessage.Body,
-	}, nil
-}
-
-func simpleHTTPHello(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("this is a test endpoint"))
-}
-
-func makeGRPCServer(certPool *x509.CertPool, rouge *rouge.RougeClient) *grpc.Server {
+func (s *server) makeGRPCServer(certPool *x509.CertPool) *grpc.Server {
 	opts := []grpc.ServerOption{
 		grpc.Creds(credentials.NewClientTLSFromCert(certPool, fmt.Sprintf("%v:%d", hostname, port)))}
 
 	//setup grpc server
-	s := grpc.NewServer(opts...)
-	// pb.RegisterEchoServiceServer(s, &server{})
-
-	pb.RegisterAPIServer(s, &server{rouge: rouge})
+	grpcServer := grpc.NewServer(opts...)
+	pb.RegisterAPIServer(grpcServer, s)
 	// Register reflection service on gRPC server.
-	reflection.Register(s)
-	return s
+	reflection.Register(grpcServer)
+	return grpcServer
 }
 
 // getRestMux initializes a new multiplexer, and registers each endpoint
 // - in this case only the EchoService
-
 func getRestMux(certPool *x509.CertPool, opts ...runtime.ServeMuxOption) (*runtime.ServeMux, error) {
 
 	// Because we run our REST endpoint on the same port as the GRPC the address is the same.
@@ -131,14 +95,18 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 	})
 }
 
-func main() {
+// createGlobalServer initializes rouge, the GRPC server and the HTTP mux,
+// it returns a fully loaded http server
+func createGlobalServer() *http.Server {
 
-	rougeClient = &rouge.RougeClient{Host: "localhost:6379"}
+	rougeClient := &rouge.Client{Host: "localhost:6379"}
 	rougeClient.Init()
+
+	server := &server{rouge: rougeClient}
 
 	keyPair, certPool := certificates.GetCert()
 
-	grpcServer := makeGRPCServer(certPool, rougeClient)
+	grpcServer := server.makeGRPCServer(certPool)
 	restMux, err := getRestMux(certPool)
 	if err != nil {
 		log.Panic(err)
@@ -167,6 +135,12 @@ func main() {
 			NextProtos:   []string{"h2"},
 		},
 	}
+	return srv
+}
+
+func main() {
+
+	var srv *http.Server = createGlobalServer()
 
 	// start listening on the socket
 	// Note that if you listen on localhost:<port> you'll not be able to accept

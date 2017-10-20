@@ -36,6 +36,10 @@ message Task {
   repeated string envs = 4;
 }
 
+message Meta {
+  string queueID = 1;
+}
+
 message RequestMessage {
   string queueID = 1;
 }

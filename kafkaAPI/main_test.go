@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/julienschmidt/httprouter"
-
 	"github.com/stretchr/testify/suite"
 )
 
@@ -64,22 +63,6 @@ func (suite *TaskAPITestSuite) TestUploadTaskBatch() error {
 	ps := httprouter.Params{}
 	createTaskListBatch(res, req, ps)
 
-	// log.Printf("response code %s", res.Code)
-	// fmt.Println(string(respBody))
-
-	// resp, err := http.Post(targetURL, contentType, bodyBuf)
-	// if err != nil {
-	// 	log.Panic(err)
-	// 	return err
-	// }
-
-	// defer resp.Body.Close()
-	// respBody, err := ioutil.ReadAll(resp.Body)
-	// if err != nil {
-	// 	return err
-	// }
-	// fmt.Println(resp.Status)
-	// fmt.Println(string(respBody))
 	return nil
 
 }

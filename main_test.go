@@ -4,12 +4,9 @@ import (
 	"log"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/nerdalize/moulin/rouge"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 
-	pb "github.com/nerdalize/moulin/protobuf"
+	"github.com/nerdalize/moulin/rouge"
 )
 
 type MainTestSuite struct {
@@ -17,41 +14,27 @@ type MainTestSuite struct {
 	server *server
 }
 
+// SetupSuite takes care of starting a rouge client
+// and creating a server instance
 func (suite *MainTestSuite) SetupSuite() {
-	rougeClient = &rouge.RougeClient{Host: "localhost:6379"}
+	// initialize the rouge client (on localhost)
+	rougeClient := &rouge.Client{Host: "localhost:6379"}
 	rougeClient.Init()
+
+	// initialize the server, with our rougeClient
+	suite.server = &server{rouge: rougeClient}
 }
 
-func (suite *MainTestSuite) TestHealthz() {
-	req := &empty.Empty{}
-	resp, _ := suite.server.Healthz(context.Background(), req)
-	suite.NotEmpty(resp, "didnt get a response")
-}
+func (suite *MainTestSuite) TestCreateGlobalServer() {
+	globalServer := createGlobalServer()
+	log.Println(globalServer)
 
-func (suite *MainTestSuite) TestPushTask() {
-	log.Println("*** testing gRPC pushTask")
-
-	// task := &rouge.TaskMessage{ID: "ASDF", Body: "empty"}
-
-	var status *pb.StatusMessage
-	ctx := context.Background()
-
-	req := &pb.Task{QueueID: "foobar", TaskID: "ASDF"}
-	status, _ = suite.server.PushTask(ctx, req)
-
-	suite.Equal("OK", status.Status, "Didn't get OK status from PushTask")
-}
-
-func (suite *MainTestSuite) TestLoadTask() {
-	log.Println("*** testing gRPC LoadTask")
-
-	req := &pb.RequestMessage{QueueID: "foobar"}
-	_, _ = suite.server.LoadTask(context.Background(), req)
-
+	suite.Equal("localhost:8042", globalServer.Addr, "host address doesn't match what we set")
+	suite.Equal(1, len(globalServer.TLSConfig.Certificates), "Server should have a TLS certificate set")
 }
 
 func (suite *MainTestSuite) TearDownSuite() {
-	log.Println("closing suite, cleaning up Redis")
+	log.Println("closing suite, This would be a good place to close and clean up things")
 }
 
 // In order for 'go test' to run this suite, we need to create

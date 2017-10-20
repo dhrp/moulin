@@ -34,13 +34,13 @@ func (red *Client) Init() error {
 		return client, nil
 	}
 
-	client, err := pool.NewCustom("tcp", red.Host, 10, df)
+	pool, err := pool.NewCustom("tcp", red.Host, 10, df)
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 
 	log.Println("redis client connected successfully with radix driver")
-	red.clientpool = client
+	red.clientpool = pool
 
 	return nil
 }
