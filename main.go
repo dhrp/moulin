@@ -113,6 +113,8 @@ func createGlobalServer() *http.Server {
 
 	// we can add any non-grpc endpoints here.
 	mux.HandleFunc("/foobar/", simpleHTTPHello)
+	mux.HandleFunc("/v1/task_list/batch/", server.createTaskListBatch)
+	// router.POST("/v1/task_list/batch/", createTaskListBatch)
 
 	// register the gateway mux onto the root path.
 	mux.Handle("/", restMux)

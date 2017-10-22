@@ -8,12 +8,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 func (suite *MainTestSuite) TestUploadTaskBatch() {
 	log.Println("*** testing TestUploadTaskBatch")
+
+	suite.NotNil(suite.server.kfk, "kafka not initialized")
+	suite.NotNil(suite.server.rouge, "rouge not initialized")
 
 	filename := "./kafkaproducer/test/testtextfile.txt"
 	targetURL := "http://testserver.com/v1/task_list/batch/"
@@ -48,7 +49,7 @@ func (suite *MainTestSuite) TestUploadTaskBatch() {
 		suite.FailNow(err.Error(), "failed to make request")
 	}
 	res := httptest.NewRecorder()
-	ps := httprouter.Params{}
-	suite.server.createTaskListBatch(res, req, ps)
+	// ps := httprouter.Params{}
+	suite.server.createTaskListBatch(res, req) // , ps
 
 }

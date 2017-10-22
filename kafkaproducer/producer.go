@@ -10,11 +10,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// KFK is the struct that is the 'root' of Kafka services
 type KFK struct {
 	Producer *kafka.Producer
 	Broker   string
 }
 
+// Init initializes KFK with the expected settings.
 func (k *KFK) Init() *kafka.Producer {
 	broker := k.Broker
 	hostname, _ := os.Hostname()
@@ -64,7 +66,7 @@ func (k *KFK) readNotifFromChan(deliveryChan <-chan kafka.Event, ackChan chan<- 
 // Produce is the mechanism by which we actually push messages into Kafka
 func (k *KFK) Produce(topic string, values [][]byte) (string, error) {
 
-	fmt.Printf("Created Producer %v\n", k.Producer)
+	fmt.Printf("Using producer: %v\n", k.Producer)
 
 	// the len(values) is the maximum number of messages on the channel
 	// event notification delivery channel (commit acks)

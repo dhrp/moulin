@@ -25,7 +25,7 @@ func (suite *MainTestSuite) SetupSuite() {
 	kfk.Init()
 
 	// initialize the server, with our rougeClient
-	suite.server = &server{rouge: rougeClient}
+	suite.server = &server{rouge: rougeClient, kfk: kfk}
 }
 
 func (suite *MainTestSuite) TestCreateGlobalServer() {

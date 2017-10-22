@@ -7,15 +7,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-
-	"github.com/julienschmidt/httprouter"
 )
 
 func simpleHTTPHello(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("this is a test endpoint"))
 }
 
-func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// ToDo: add function to accept a file in the easier format of text/plain
+
+// ToDo: re-add path parameter
+// func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request) {
+
 	r.ParseMultipartForm(32 << 20)
 	file, handler, err := r.FormFile("file")
 	if err != nil {
@@ -35,8 +38,17 @@ func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request, ps 
 	}
 	defer f.Close()
 	io.Copy(f, file)
-	// here we take a next action with the uploaded file
-	// produceFromFile(filePath)
 
-	s.kfk.ProduceFromFile(filePath)
+	// send file to the kafka producer
+	_, err = s.kfk.ProduceFromFile(filePath)
+	if err != nil {
+		log.Panic(err) // ToDo: return error to the user
+	}
+
+	// and clean up the file
+	err = os.Remove(filePath)
+	if err != nil {
+		log.Panic(err) // ToDo: return error to the user
+	}
+
 }
