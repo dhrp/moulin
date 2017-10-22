@@ -6,7 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+
+	"github.com/segmentio/ksuid"
 )
 
 func simpleHTTPHello(w http.ResponseWriter, r *http.Request) {
@@ -27,10 +28,11 @@ func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	_, fileName := filepath.Split(handler.Filename)
+	// _, fileName := filepath.Split(handler.Filename)
+	fileName := ksuid.New().String()
 
 	filePath := "./uploads/" + fileName
-	fmt.Fprintf(w, "%v", handler.Header)
+	log.Printf("%v", handler.Header)
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		fmt.Println(err)
@@ -39,8 +41,7 @@ func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request) {
 	defer f.Close()
 	io.Copy(f, file)
 
-	// send file to the kafka producer
-	_, err = s.kfk.ProduceFromFile(filePath)
+	queueLength, count, err := s.rouge.AddTasksFromFile("batch", filePath)
 	if err != nil {
 		log.Panic(err) // ToDo: return error to the user
 	}
@@ -50,5 +51,8 @@ func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Panic(err) // ToDo: return error to the user
 	}
+	// return queueLength, nil
+	result := fmt.Sprintf("sucessfully added %d items, queue now %d items long", count, queueLength)
+	w.Write([]byte(result))
 
 }

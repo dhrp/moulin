@@ -7,3 +7,6 @@ dependencies for building protobuf:
 brew install autoconf
 brew install automake
 brew install libtool
+
+random id:
+https://github.com/segmentio/ksuid

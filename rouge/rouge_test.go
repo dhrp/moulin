@@ -255,6 +255,20 @@ func (suite *RedClientTestSuite) TestRedEndToEnd() {
 	log.Println("*******************")
 }
 
+func (suite *RedClientTestSuite) TestAddTasksFromFile() {
+
+	log.Println("*******************")
+	log.Println("TEST ADD FROM FILE")
+	queueID := "test.queue"
+	filePath := "../kafkaproducer/test/testtextfile.txt"
+
+	queueLength, count, err := suite.red.AddTasksFromFile(queueID, filePath)
+	suite.Nil(err, "AddTasksFromFile gave an error")
+	suite.Equal(queueLength, 6, "Expected the queue to have this new size")
+	suite.Equal(count, 6, "We added 6 items")
+
+}
+
 func (suite *RedClientTestSuite) BeforeTest() {
 }
 

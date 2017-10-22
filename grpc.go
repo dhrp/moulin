@@ -3,6 +3,8 @@ package main
 // Here we define all GRPC handlers
 
 import (
+	"fmt"
+
 	"golang.org/x/net/context"
 
 	"github.com/pkg/errors"
@@ -36,10 +38,11 @@ func (s *server) PushTask(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 	queueID := in.QueueID
 
 	taskMessage := rouge.TaskMessage{ID: "nonsense", Body: "empty"}
-	result, err := s.rouge.AddTask(queueID, taskMessage)
+	queueLength, err := s.rouge.AddTask(queueID, taskMessage)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to push task")
 	}
+	result := fmt.Sprintf("queue now %d items long", queueLength)
 
 	return &pb.StatusMessage{
 		Status: "OK",
