@@ -1,9 +1,11 @@
 c
 s
 debug
+debug.test
 **/*.debug
 **/*.test
+moulin
+
 .DS_Store
 **/.DS_Store
 clientcmd
-moulin
