@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -12,8 +12,10 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (suite *MainTestSuite) TestUploadTaskBatch() error {
-	filename := "test/testtextfile.txt"
+func (suite *MainTestSuite) TestUploadTaskBatch() {
+	log.Println("*** testing TestUploadTaskBatch")
+
+	filename := "./kafkaproducer/test/testtextfile.txt"
 	targetURL := "http://testserver.com/v1/task_list/batch/"
 
 	bodyBuf := &bytes.Buffer{}
@@ -22,22 +24,18 @@ func (suite *MainTestSuite) TestUploadTaskBatch() error {
 	// this step is very important
 	fileWriter, err := bodyWriter.CreateFormFile("file", filename)
 	if err != nil {
-		fmt.Println("error writing to buffer")
-		return err
+		log.Panic("error writing to buffer")
 	}
 
 	// open file handle
 	fh, err := os.Open(filename)
 	if err != nil {
-		fmt.Println("error opening file")
-		return err
+		log.Panic("error opening test file")
 	}
 
 	//iocopy
 	_, err = io.Copy(fileWriter, fh)
-	if err != nil {
-		return err
-	}
+	suite.Nil(err, "io.Copy (for creating mock file upload) failed")
 
 	contentType := bodyWriter.FormDataContentType()
 	_ = contentType
@@ -51,8 +49,6 @@ func (suite *MainTestSuite) TestUploadTaskBatch() error {
 	}
 	res := httptest.NewRecorder()
 	ps := httprouter.Params{}
-	createTaskListBatch(res, req, ps)
-
-	return nil
+	suite.server.createTaskListBatch(res, req, ps)
 
 }

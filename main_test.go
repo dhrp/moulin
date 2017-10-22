@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	"github.com/nerdalize/moulin/kafkaproducer"
 	"github.com/nerdalize/moulin/rouge"
 )
 
@@ -20,6 +21,8 @@ func (suite *MainTestSuite) SetupSuite() {
 	// initialize the rouge client (on localhost)
 	rougeClient := &rouge.Client{Host: "localhost:6379"}
 	rougeClient.Init()
+	kfk := &kafkaproducer.KFK{Broker: "localhost:9092"}
+	kfk.Init()
 
 	// initialize the server, with our rougeClient
 	suite.server = &server{rouge: rougeClient}

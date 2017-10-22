@@ -15,7 +15,7 @@ func simpleHTTPHello(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("this is a test endpoint"))
 }
 
-func createTaskListBatch(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	r.ParseMultipartForm(32 << 20)
 	file, handler, err := r.FormFile("file")
 	if err != nil {
@@ -37,4 +37,6 @@ func createTaskListBatch(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	io.Copy(f, file)
 	// here we take a next action with the uploaded file
 	// produceFromFile(filePath)
+
+	s.kfk.ProduceFromFile(filePath)
 }

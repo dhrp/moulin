@@ -10,13 +10,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-type KafkaProducer struct {
+type KFK struct {
 	Producer *kafka.Producer
-	broker   string
+	Broker   string
 }
 
-func (k *KafkaProducer) init() *kafka.Producer {
-	broker := k.broker
+func (k *KFK) Init() *kafka.Producer {
+	broker := k.Broker
 	hostname, _ := os.Hostname()
 
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
@@ -35,7 +35,7 @@ func (k *KafkaProducer) init() *kafka.Producer {
 	return k.Producer
 }
 
-func (k *KafkaProducer) readNotifFromChan(deliveryChan <-chan kafka.Event, ackChan chan<- string, count int) {
+func (k *KFK) readNotifFromChan(deliveryChan <-chan kafka.Event, ackChan chan<- string, count int) {
 	var offset string
 
 	for i := 0; i < count; i++ {
@@ -62,7 +62,7 @@ func (k *KafkaProducer) readNotifFromChan(deliveryChan <-chan kafka.Event, ackCh
 }
 
 // Produce is the mechanism by which we actually push messages into Kafka
-func (k *KafkaProducer) Produce(topic string, values [][]byte) (string, error) {
+func (k *KFK) Produce(topic string, values [][]byte) (string, error) {
 
 	fmt.Printf("Created Producer %v\n", k.Producer)
 
@@ -99,7 +99,12 @@ func (k *KafkaProducer) Produce(topic string, values [][]byte) (string, error) {
 
 // ProduceFromFile is a stub for reading the uploaded file
 // and then feeding it into the Kafka Producer
-func (k *KafkaProducer) ProduceFromFile(filePath string) (string, error) {
+func (k *KFK) ProduceFromFile(filePath string) (string, error) {
+	log.Println("Doing ProduceFromFile")
+	if k == nil {
+		log.Panic("kfk not initialized in ProduceFromFile")
+	}
+
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Panic(err)

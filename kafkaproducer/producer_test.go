@@ -8,12 +8,12 @@ import (
 
 type KafkaProducerTestSuite struct {
 	suite.Suite
-	kp KafkaProducer
+	kp KFK
 }
 
 func (suite *KafkaProducerTestSuite) SetupSuite() {
-	suite.kp = KafkaProducer{broker: "localhost:9092"}
-	_ = suite.kp.init()
+	suite.kp = KFK{Broker: "localhost:9092"}
+	_ = suite.kp.Init()
 }
 
 func (suite *KafkaProducerTestSuite) TestProducer() {
