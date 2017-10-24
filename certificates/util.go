@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 )
 
 var (
@@ -17,11 +18,13 @@ var (
 
 // GetCert returns a certicicate pair and pool
 func GetCert() (*tls.Certificate, *x509.CertPool) {
-	serverCrt, err := ioutil.ReadFile("certificates/server.crt")
+	crtPath, _ := filepath.Abs("./certificates/server.crt")
+	serverCrt, err := ioutil.ReadFile(crtPath)
 	if err != nil {
 		log.Fatal(err)
 	}
-	serverKey, err := ioutil.ReadFile("certificates/server.key")
+	keyPath, _ := filepath.Abs("./certificates/server.key")
+	serverKey, err := ioutil.ReadFile(keyPath)
 	if err != nil {
 		log.Fatal(err)
 	}
