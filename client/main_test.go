@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
+	pb "github.com/nerdalize/moulin/protobuf"
 	"github.com/nerdalize/moulin/rouge"
 )
 
@@ -43,12 +44,22 @@ func (suite *MainTestSuite) TestGetHealthz() {
 	suite.Equal("OK", result, "Didn't receive OK health")
 }
 
-func (suite *MainTestSuite) TestLoadTask() {
+func (suite *MainTestSuite) TestPushAndLoadOneTask() {
 	fmt.Println("*** TestLoadTask()")
 
+	// taskID := ksuid.New().String()
+	inputTask := &pb.Task{
+		QueueID: "clientTest",
+		// TaskID: taskID,  // we let the server create a taskID
+		Body: "Just Testing!",
+	}
+
+	result := suite.grpcDriver.PushTask(inputTask)
+	suite.Equal("OK", result, "result was not OK")
+
 	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
-	// task := suite.grpcDriver.LoadTask()
-	// suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu44"), len(task.TaskID), "TaskID doesn't look valid")
+	returnedTask := suite.grpcDriver.LoadTask("clientTest")
+	suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu4x"), len(returnedTask.TaskID), "TaskID doesn't look valid")
 }
 
 func (suite *MainTestSuite) TearDownSuite() {

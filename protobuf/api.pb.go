@@ -39,6 +39,8 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Task is the definition of a task
 type Task struct {
+	// reserved 1; // we took queueID out
+	// reserved "queueID";
 	QueueID string   `protobuf:"bytes,1,opt,name=queueID" json:"queueID,omitempty"`
 	TaskID  string   `protobuf:"bytes,2,opt,name=taskID" json:"taskID,omitempty"`
 	Body    string   `protobuf:"bytes,3,opt,name=body" json:"body,omitempty"`

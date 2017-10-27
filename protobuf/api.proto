@@ -30,6 +30,8 @@ service API {
 
 // Task is the definition of a task
 message Task {
+  // reserved 1; // we took queueID out
+  // reserved "queueID";
   string queueID = 1;       // needed to pass the queueID to push task to
   string taskID = 2;
   string body = 3;          // perhaps should be called argument(s)

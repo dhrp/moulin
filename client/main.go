@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/grpc/metadata"
 )
 
 const (
@@ -60,11 +61,27 @@ func (g GRPCDriver) getHealth() (status string) {
 	return r.Status
 }
 
+// PushTask loads a task from the queue
+// ToDo: add a timeout, for testing, and allow selecting queueID
+func (g GRPCDriver) PushTask(task *pb.Task) string {
+	// then load a message
+
+	md := metadata.Pairs("authorization", "open sesame")
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	result, err := g.client.PushTask(ctx, task)
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Result: %v", result)
+	return result.Status
+}
+
 // LoadTask loads a task from the queue
 // ToDo: add a timeout, for testing, and allow selecting queueID
-func (g GRPCDriver) LoadTask() (task *pb.Task) {
+func (g GRPCDriver) LoadTask(queueID string) (task *pb.Task) {
 	// then load a message
-	t, err := g.client.LoadTask(context.Background(), &pb.RequestMessage{QueueID: "clientTestSuite"})
+	t, err := g.client.LoadTask(context.Background(), &pb.RequestMessage{QueueID: queueID})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
