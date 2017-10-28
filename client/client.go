@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"fmt"
@@ -23,13 +23,14 @@ const (
 
 // GRPCDriver is the main instance
 type GRPCDriver struct {
-	connection *grpc.ClientConn
+	Connection *grpc.ClientConn
 	client     pb.APIClient
 }
 
 var queueID = flag.String("queue", "batch", "Select a queue")
 
-func newGRPCDriver() *GRPCDriver {
+// NewGRPCDriver creates and initializes a new GRPC client and connection
+func NewGRPCDriver() *GRPCDriver {
 
 	keyPair, certPool := certificates.GetCert()
 	_ = keyPair
@@ -46,12 +47,12 @@ func newGRPCDriver() *GRPCDriver {
 
 	apiClient := pb.NewAPIClient(conn)
 
-	gd := &GRPCDriver{connection: conn, client: apiClient}
+	gd := &GRPCDriver{Connection: conn, client: apiClient}
 
 	return gd
 }
 
-func (g GRPCDriver) getHealth() (status string) {
+func (g GRPCDriver) GetHealth() (status string) {
 	// first do status
 	r, err := g.client.Healthz(context.Background(), &empty.Empty{})
 	if err != nil {
@@ -87,12 +88,4 @@ func (g GRPCDriver) LoadTask(queueID string) (task *pb.Task) {
 	}
 	log.Printf("Task: %s", t.TaskID)
 	return t
-}
-
-func main() {
-
-	grpcDriver := newGRPCDriver()
-	// _ = grpcDriver
-	defer grpcDriver.connection.Close()
-
 }

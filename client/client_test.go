@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ func (suite *MainTestSuite) SetupSuite() {
 	// Test the error handling. We expect the a panic at this time.
 	suite.Panics(suite.TestGetHealthz, "The function did not panic even though there is no connection!?!")
 
-	grpcDriver := newGRPCDriver()
+	grpcDriver := NewGRPCDriver()
 	suite.grpcDriver = grpcDriver
 
 	// initialize the rouge client (on localhost)
@@ -40,7 +40,7 @@ func (suite *MainTestSuite) SetupSuite() {
 
 func (suite *MainTestSuite) TestGetHealthz() {
 	fmt.Println("*** TestGetHealthz()")
-	result := suite.grpcDriver.getHealth()
+	result := suite.grpcDriver.GetHealth()
 	suite.Equal("OK", result, "Didn't receive OK health")
 }
 
@@ -65,7 +65,7 @@ func (suite *MainTestSuite) TestPushAndLoadOneTask() {
 func (suite *MainTestSuite) TearDownSuite() {
 	log.Println("Tearing down test suite")
 	log.Println("closing grpcDriver connection")
-	suite.grpcDriver.connection.Close()
+	suite.grpcDriver.Connection.Close()
 }
 
 // In order for 'go test' to run this suite, we need to create
