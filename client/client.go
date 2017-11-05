@@ -1,10 +1,9 @@
 package client
 
 import (
+	"flag"
 	"fmt"
 	"log"
-
-	"flag"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/nerdalize/moulin/certificates"

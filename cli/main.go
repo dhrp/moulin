@@ -15,4 +15,8 @@ func main() {
 	status := grpcDriver.GetHealth()
 	fmt.Println(status)
 
+	task := grpcDriver.LoadTask(queueID)
+	fmt.Println("loaded: " + task.TaskID)
+	fmt.Println("body: " + task.Body)
+
 }

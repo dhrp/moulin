@@ -13,10 +13,9 @@ import (
 func (suite *MainTestSuite) TestUploadTaskBatch() {
 	log.Println("*** testing TestUploadTaskBatch")
 
-	suite.NotNil(suite.server.kfk, "kafka not initialized")
 	suite.NotNil(suite.server.rouge, "rouge not initialized")
 
-	filename := "./kafkaproducer/test/testtextfile.txt"
+	filename := "./test/testtextfile.txt"
 	targetURL := "http://testserver.com/v1/task_list/batch/"
 
 	bodyBuf := &bytes.Buffer{}

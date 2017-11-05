@@ -19,7 +19,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/nerdalize/moulin/certificates"
-	"github.com/nerdalize/moulin/kafkaproducer"
+	// "github.com/nerdalize/moulin/kafkaproducer"
 	pb "github.com/nerdalize/moulin/protobuf"
 	"github.com/nerdalize/moulin/rouge"
 )
@@ -34,7 +34,6 @@ var serveAddress string = fmt.Sprintf("%v:%d", hostname, port)
 
 type server struct {
 	rouge *rouge.Client
-	kfk   *kafkaproducer.KFK
 }
 
 func (s *server) makeGRPCServer(certPool *x509.CertPool) *grpc.Server {
@@ -95,10 +94,10 @@ func createGlobalServer() *http.Server {
 
 	rougeClient := &rouge.Client{Host: "localhost:6379"}
 	rougeClient.Init()
-	kfk := &kafkaproducer.KFK{Broker: "localhost:9092"}
-	kfk.Init()
+	// kfk := &kafkaproducer.KFK{Broker: "localhost:9092"}
+	// kfk.Init()
 
-	server := &server{rouge: rougeClient, kfk: kfk}
+	server := &server{rouge: rougeClient}
 
 	keyPair, certPool := certificates.GetCert()
 
