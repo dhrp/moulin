@@ -129,7 +129,7 @@ func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
 }
 
 // Heartbeat updates the status of a message
-func (red *Client) Heartbeat(queueID string, taskID string, expirationSec int) bool {
+func (red *Client) Heartbeat(queueID string, taskID string, expirationSec int32) (int, error) {
 
 	if red.clientpool == nil {
 		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
@@ -141,25 +141,26 @@ func (red *Client) Heartbeat(queueID string, taskID string, expirationSec int) b
 	set := queueID + ".running"
 	member := taskID
 
-	expiresAt := int64(time.Now().Unix()) + int64(expirationSec)
+	expiresAt := time.Now().Unix() + int64(expirationSec)
 	score := strconv.FormatInt(expiresAt, 10)
 
 	// _, _, _ = set, score, value
 	count, _ := red.zaddUpdate(set, score, member)
 	if count == 0 {
-		log.Println("Heartbeat: no item could be found to update, was item already " +
-			"completed?, or perhaps the item was updated < 1 sec ago.")
-		return false
+		errMsg := "Heartbeat: no item could be found to update, was item already " +
+			"completed?, or perhaps the item was updated < 1 sec ago."
+		log.Println(errMsg)
+		return 0, errors.New(errMsg)
 	}
 
 	log.Println("HEARTBEAT END")
 	log.Println("***************")
 
-	return true
+	return int(expiresAt), nil
 }
 
 // Complete marks the item as completed.
-func Complete(red Client, queueID string, taskID string) bool {
+func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 
 	if red.clientpool == nil {
 		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
@@ -172,15 +173,14 @@ func Complete(red Client, queueID string, taskID string) bool {
 	to := fmt.Sprintf("%s.complete", queueID)
 	member := taskID
 
-	count, _ := red.moveMemberFromSetToSet(from, to, member)
-	if count != 1 {
-		log.Printf("Didn't complete the right amount of items!: %d", count)
-		return false
+	ok, err := red.moveMemberFromSetToSet(from, to, member)
+	if err != nil {
+		return false, errors.Wrap(err, "couldn't complete any items")
 	}
 
 	log.Println("COMPLETE END")
 	log.Println("***************")
-	return true
+	return ok, nil
 }
 
 // AddTask adds a new task to a queue.

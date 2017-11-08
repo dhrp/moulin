@@ -1,12 +1,12 @@
 package rouge
 
 import (
-	"errors"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/mediocregopher/radix.v2/redis"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) checkExpired(set string) (string, error) {
@@ -121,6 +121,15 @@ func (c *Client) del(key string) int {
 	return count
 }
 
+// flush flushes the entire database. Use with care!
+func (c *Client) flushdb() bool {
+	r := c.clientpool.Cmd("FLUSHDB")
+	if r.Err != nil {
+		log.Panic(r.Err)
+	}
+	return true
+}
+
 func (c *Client) lpush(key string, value string) (int, error) {
 
 	log.Printf("Doing: LPUSH %s %s", key, value)
@@ -223,23 +232,38 @@ func (c *Client) zrevrange(set string, from int, to int) ([]string, error) {
 }
 
 // Do an atomic from sorted list; to sorted list operation
-func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (int, error) {
+func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (bool, error) {
+
+	var removed, added int
+	var err error
 
 	luaScript := `
-		redis.call('ZREM', KEYS[1], ARGV[1]);
+		local removed = redis.call('ZREM', KEYS[1], ARGV[2]);
 		local count = redis.call('ZADD', KEYS[2], ARGV[1], ARGV[2]);
-		return count
+		return {removed, count}
 	`
 
 	timestamp := int64(time.Now().Unix())
 	score := strconv.FormatInt(timestamp, 10)
 
 	log.Printf("Doing: EVAL <luascript> %s %s %s %s", from, to, score, member)
-	count, err := c.clientpool.Cmd("EVAL", luaScript, 2, from, to, score, member).Int()
-	if err != nil {
-		log.Panic(err)
+	r := c.clientpool.Cmd("EVAL", luaScript, 2, from, to, score, member)
+	if r.Err != nil {
+		return false, errors.Wrap(r.Err, "lua script error")
 	}
-	return count, nil
+	lst, err := r.Array()
+	if err != nil {
+		return false, errors.Wrap(err, "lua script error: didn't get an array return")
+	}
+
+	if removed, _ = lst[0].Int(); removed == 0 {
+		return false, errors.New("item was not removed from source set")
+	}
+	if added, _ = lst[1].Int(); added == 0 {
+		return false, errors.New("item already existed in target set")
+	}
+
+	return true, nil
 }
 
 // func load -- Lua for Load

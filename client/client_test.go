@@ -41,13 +41,12 @@ func (suite *MainTestSuite) SetupSuite() {
 func (suite *MainTestSuite) TestGetHealthz() {
 	fmt.Println("*** TestGetHealthz()")
 	result := suite.grpcDriver.GetHealth()
-	suite.Equal("OK", result, "Didn't receive OK health")
+	suite.Equal(pb.Status_SUCCESS, result.Status, "Didn't receive OK health")
 }
 
-func (suite *MainTestSuite) TestPushAndLoadOneTask() {
+func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 	fmt.Println("*** TestLoadTask()")
 
-	// taskID := ksuid.New().String()
 	inputTask := &pb.Task{
 		QueueID: "clientTest",
 		// TaskID: taskID,  // we let the server create a taskID
@@ -55,11 +54,21 @@ func (suite *MainTestSuite) TestPushAndLoadOneTask() {
 	}
 
 	result := suite.grpcDriver.PushTask(inputTask)
-	suite.Equal("OK", result, "result was not OK")
+	suite.Equal(pb.Status_SUCCESS, result.Status, "result was not OK")
 
 	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
 	returnedTask := suite.grpcDriver.LoadTask("clientTest")
 	suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu4x"), len(returnedTask.TaskID), "TaskID doesn't look valid")
+
+	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
+	result = suite.grpcDriver.HeartBeat("clientTest", returnedTask.TaskID, 301)
+	suite.Equal(pb.Status_SUCCESS, result.Status)
+
+	result = suite.grpcDriver.HeartBeat("clientTest", "doesnt-exist", 301)
+	suite.Equal(pb.Status_FAILURE, result.Status)
+
+	result = suite.grpcDriver.Complete("clientTest", returnedTask.TaskID)
+	suite.Equal(pb.Status_SUCCESS, result.Status)
 }
 
 func (suite *MainTestSuite) TearDownSuite() {

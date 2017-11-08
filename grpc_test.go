@@ -17,7 +17,7 @@ func (suite *MainTestSuite) TestHealthz() {
 	suite.NotEmpty(resp, "didnt get a response")
 }
 
-func (suite *MainTestSuite) TestPushAndLoadTask() {
+func (suite *MainTestSuite) TestPushLoadAndCompleteTask() {
 	log.Println("*** testing gRPC TestPushAndLoadTask")
 
 	// create and push the task
@@ -26,7 +26,7 @@ func (suite *MainTestSuite) TestPushAndLoadTask() {
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	reqOut := &pb.Task{QueueID: "foobar", TaskID: "ASDF"}
 	status, _ = suite.server.PushTask(ctx, reqOut)
-	suite.Equal("OK", status.Status, "Didn't get OK status from PushTask")
+	suite.Equal(pb.Status_SUCCESS, status.Status, "Didn't get Success status from PushTask")
 
 	// retrieve the task
 	reqIn := &pb.RequestMessage{QueueID: "foobar"}
@@ -36,13 +36,21 @@ func (suite *MainTestSuite) TestPushAndLoadTask() {
 	suite.Nil(err)
 	fmt.Println(task)
 
-}
+	// heartbeat the task
+	m := &pb.Task{QueueID: "foobar", TaskID: task.TaskID, ExpirationSec: 501}
+	statusMessage, err := suite.server.HeartBeat(context.Background(), m)
+	suite.Nil(err)
+	suite.Equal(pb.Status_SUCCESS, statusMessage.Status)
 
-//
-// func (suite *MainTestSuite) TestLoadTask() {
-// 	log.Println("*** testing gRPC LoadTask")
-//
-// 	// req := &pb.RequestMessage{QueueID: "foobar"}
-// 	// _, _ = suite.server.LoadTask(context.Background(), req)
-//
-// }
+	// complete the task
+	m = &pb.Task{QueueID: "foobar", TaskID: task.TaskID}
+	statusMessage, err = suite.server.Complete(context.Background(), m)
+	suite.Nil(err)
+	suite.Equal(pb.Status_SUCCESS, statusMessage.Status)
+	//
+	// complete the same task again task, this fails
+	m = &pb.Task{QueueID: "foobar", TaskID: task.TaskID}
+	statusMessage, err = suite.server.Complete(context.Background(), m)
+	suite.NotNil(err)
+	suite.Equal(pb.Status_FAILURE, statusMessage.Status)
+}

@@ -12,7 +12,7 @@ build:
 	go build -o ${BINARY} *.go
 
 run:
-	./moulin &
+	./moulin
 
 test:
 	go test github.com/nerdalize/moulin/rouge

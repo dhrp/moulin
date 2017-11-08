@@ -145,6 +145,15 @@ func (suite *RedClientTestSuite) TestSortedSet() {
 	suite.red.del("nonexistent")
 	_, _ = suite.red.fetchAndUpdateExpired("nonexistent", 300)
 
+	// ToDo: add move from set to set
+	ok, err := suite.red.moveMemberFromSetToSet(queueID+".running", queueID+".completed", taskID)
+	suite.Nil(err)
+	suite.True(ok, "item didn't succeed to move from set to set")
+
+	ok, err = suite.red.moveMemberFromSetToSet(queueID+".running", queueID+".completed", taskID)
+	suite.NotNil(err)
+	suite.False(ok, "moving the item again was not supposed to have succeeded")
+
 	log.Println("### Testing Sorted Set End")
 
 }
@@ -203,13 +212,16 @@ func (suite *RedClientTestSuite) TestHeartbeatPhase() {
 	count, _ := suite.red.zadd(set, score, member)
 	suite.Equal(1, count, "Failed to zadd an item, did we not start clean?")
 
-	expirationSec := 300 // 5 min
+	var expirationSec int32 = 300 // 5 min
 
-	result := suite.red.Heartbeat(queueID, member, expirationSec)
-	suite.True(result, "Heartbeat didn't return 1, item could not be updated")
+	expires, err := suite.red.Heartbeat(queueID, taskID, expirationSec)
+	suite.Nil(err, "didn't expect an error")
+	suite.NotZero(expires, "expired a non-zero expiry")
 
-	result = suite.red.Heartbeat(queueID, member, expirationSec)
-	suite.False(result, "Heartbeat should have returned false because we updated it with the same score")
+	// Here we do a second update, which is expected to fail
+	expires, err = suite.red.Heartbeat(queueID, member, expirationSec)
+	suite.NotNil(err, "I expected an error")
+	suite.Zero(expires, "expired a non-zero expiry")
 }
 
 func (suite *RedClientTestSuite) TestCompletePhase() {
@@ -225,8 +237,9 @@ func (suite *RedClientTestSuite) TestCompletePhase() {
 	from := set
 	to := "test.queue.completed"
 
-	count, _ := suite.red.moveMemberFromSetToSet(from, to, member)
-	suite.Equal(1, count, "didn't manage to move item from one set to other")
+	OK, err := suite.red.moveMemberFromSetToSet(from, to, member)
+	suite.Nil(err)
+	suite.Equal(true, OK, "didn't manage to move item from one set to other")
 }
 
 func (suite *RedClientTestSuite) TestRedEndToEnd() {
@@ -244,12 +257,14 @@ func (suite *RedClientTestSuite) TestRedEndToEnd() {
 	taskID := msg.ID
 
 	// Send a heartbeat
-	status := suite.red.Heartbeat(queueID, taskID, 400)
-	suite.True(status, "Heartbeat failed to updated the item...")
+	expires, err := suite.red.Heartbeat(queueID, taskID, 400)
+	suite.Nil(err)
+	suite.NotZero(expires, "expired a non-zero expiry")
 
 	// Mark the item as complete
-	complete := Complete(suite.red, queueID, taskID)
-	suite.True(complete, "Complete failed to complete the item...")
+	OK, err := suite.red.Complete(queueID, taskID)
+	suite.Nil(err, "Complete failed to complete the item...")
+	suite.Equal(true, OK, "didn't get the right amount of completed items")
 
 	log.Println("END TO END TEST END")
 	log.Println("*******************")
@@ -285,6 +300,7 @@ func (suite *RedClientTestSuite) TearDownTest() {
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {
+	suite.red.flushdb()
 	log.Println("closing suite, cleaning up Redis")
 }
 

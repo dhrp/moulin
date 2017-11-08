@@ -48,6 +48,13 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "expirationSec",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -84,14 +91,53 @@
           "API"
         ]
       }
+    },
+    "/v1/queue/{queueID}/{taskID}": {
+      "put": {
+        "operationId": "Complete",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/APIStatusMessage"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
     }
   },
   "definitions": {
+    "APIStatus": {
+      "type": "string",
+      "enum": [
+        "SUCCESS",
+        "FAILURE",
+        "UNKNOWN"
+      ],
+      "default": "SUCCESS"
+    },
     "APIStatusMessage": {
       "type": "object",
       "properties": {
         "status": {
-          "type": "string"
+          "$ref": "#/definitions/APIStatus"
         },
         "detail": {
           "type": "string"
@@ -116,6 +162,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "expirationSec": {
+          "type": "integer",
+          "format": "int32"
         }
       },
       "title": "Task is the definition of a task"

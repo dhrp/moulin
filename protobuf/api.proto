@@ -26,6 +26,25 @@ service API {
       get: "/v1/queue/{queueID}"
     };
   }
+
+  rpc HeartBeat (Task) returns (StatusMessage) {
+    option (google.api.http) = {
+      put: "/v1/queue/{queueID}/{taskID}"
+    };
+  }
+
+  rpc Complete (Task) returns (StatusMessage) {
+    option (google.api.http) = {
+      put: "/v1/queue/{queueID}/{taskID}"
+    };
+  }
+
+}
+
+enum Status {
+    SUCCESS = 0;
+    FAILURE = 1;
+    UNKNOWN = 2;
 }
 
 // Task is the definition of a task
@@ -36,6 +55,7 @@ message Task {
   string taskID = 2;
   string body = 3;          // perhaps should be called argument(s)
   repeated string envs = 4;
+  int32 expirationSec = 5;  // this is used to heartbeat
 }
 
 message Meta {
@@ -44,9 +64,10 @@ message Meta {
 
 message RequestMessage {
   string queueID = 1;
+  int32 expirationSec = 2;
 }
 
 message StatusMessage {
-  string status = 1;
+  Status status = 1;
   string detail = 2;
 }
