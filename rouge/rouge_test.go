@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -19,7 +20,12 @@ func (suite *RedClientTestSuite) SetupSuite() {
 	suite.sampleMsgBody = "http://www.peskens.nl"
 
 	suite.red = Client{Host: "localhost:6379"}
-	_ = suite.red.Init()
+	err := suite.red.Init()
+	suite.Nil(err, "failed to init Redis")
+	if err != nil {
+		err = errors.Wrap(err, "failed to setup suite")
+		log.Fatal(err)
+	}
 }
 
 // GenerateMessage generate a json message for piping through the system.
@@ -37,7 +43,8 @@ func GenerateMessage(body string) TaskMessage {
 }
 
 func (suite *RedClientTestSuite) TestBasicConnection() {
-	info, _ := suite.red.Info()
+	info, err := suite.red.Info()
+	suite.Nil(err, "error, is redis running?")
 	suite.NotEmpty(info, "expected redis info")
 }
 

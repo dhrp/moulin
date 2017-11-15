@@ -1,13 +1,12 @@
 package client
 
 import (
-	"flag"
-	"fmt"
 	"log"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/nerdalize/moulin/certificates"
 	pb "github.com/nerdalize/moulin/protobuf"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -26,15 +25,11 @@ type GRPCDriver struct {
 	client     pb.APIClient
 }
 
-var queueID = flag.String("queue", "batch", "Select a queue")
-
 // NewGRPCDriver creates and initializes a new GRPC client and connection
 func NewGRPCDriver() *GRPCDriver {
 
 	keyPair, certPool := certificates.GetCert()
 	_ = keyPair
-
-	fmt.Println(queueID)
 
 	var opts []grpc.DialOption
 	creds := credentials.NewClientTLSFromCert(certPool, "localhost:8042")
@@ -52,14 +47,14 @@ func NewGRPCDriver() *GRPCDriver {
 }
 
 // GetHealth just checks if everything, including Redis is healthy
-func (g GRPCDriver) GetHealth() (status pb.StatusMessage) {
+func (g GRPCDriver) GetHealth() (status pb.StatusMessage, err error) {
 	// first do status
 	r, err := g.client.Healthz(context.Background(), &empty.Empty{})
 	if err != nil {
-		log.Panic("could not get healthz")
+		return pb.StatusMessage{}, errors.Wrap(err, "could not get healthz")
 	}
 	log.Printf("Health: %s", r.Status)
-	return *r
+	return *r, nil
 }
 
 // PushTask loads a task from the queue

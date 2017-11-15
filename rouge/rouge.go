@@ -40,7 +40,7 @@ func (red *Client) Init() error {
 
 	pool, err := pool.NewCustom("tcp", red.Host, 10, df)
 	if err != nil {
-		log.Panic(err)
+		return errors.Wrap(err, "init new connection to redis failed")
 	}
 
 	log.Println("redis client connected successfully with radix driver")
@@ -181,6 +181,27 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 	log.Println("COMPLETE END")
 	log.Println("***************")
 	return ok, nil
+}
+
+func (red *Client) GetProgress(queueID string) (string, error) {
+	// show length of incoming list
+	// show length of received list
+
+	// show count of items in data store, and the total size consumed
+
+	// show count of non-expired items in running set
+	// show count of expired items in running set
+	// show count of items in completed set
+	// show count of items in failed set
+
+	// show a list of all items (with content) of now working on and failed
+	//  * which worker is working on it
+	//  * command and arguments
+
+	// get size of all keys for this queue combined
+
+	answer := "foobar"
+	return answer, nil
 }
 
 // AddTask adds a new task to a queue.

@@ -6,14 +6,12 @@ import (
 	"fmt"
 	"log"
 
-	"google.golang.org/grpc/metadata"
-
-	"golang.org/x/net/context"
-
+	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc/metadata"
 
-	"github.com/golang/protobuf/ptypes/empty"
 	pb "github.com/nerdalize/moulin/protobuf"
 	"github.com/nerdalize/moulin/rouge"
 )
@@ -39,7 +37,17 @@ func (s *server) Healthz(ctx context.Context, in *empty.Empty) (*pb.StatusMessag
 func (s *server) PushTask(ctx context.Context, in *pb.Task) (*pb.StatusMessage, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
-		var authorization string = md["authorization"][0]
+		//ToDo: on http we get context, but authorization may not be set
+		var authorization string
+		// var ok bool
+		if _, ok = md["authorization"]; ok {
+			authorization = md["authorization"][0]
+		}
+
+		// if "authorization" {
+		// 	var authorization string = md["authorization"][0]
+		// }
+
 		fmt.Println("authorization: " + authorization)
 	} else {
 		fmt.Println("failed to load context (meta)")

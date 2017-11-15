@@ -40,7 +40,8 @@ func (suite *MainTestSuite) SetupSuite() {
 
 func (suite *MainTestSuite) TestGetHealthz() {
 	fmt.Println("*** TestGetHealthz()")
-	result := suite.grpcDriver.GetHealth()
+	result, err := suite.grpcDriver.GetHealth()
+	suite.Nil(err)
 	suite.Equal(pb.Status_SUCCESS, result.Status, "Didn't receive OK health")
 }
 
