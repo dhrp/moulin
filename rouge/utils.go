@@ -14,6 +14,7 @@ type TaskMessage struct {
 	Envs []string `json:"envs"`
 }
 
+// ToString converts a taskMessage to a string
 func (t *TaskMessage) ToString() string {
 	b, err := json.Marshal(t)
 	if err != nil {
@@ -22,9 +23,10 @@ func (t *TaskMessage) ToString() string {
 	return string(b)
 }
 
-// Obj parser
-func (t *TaskMessage) FromString(jsonStr []byte) (*TaskMessage, error) {
-	err := json.Unmarshal(jsonStr, &t)
+// FromString makes a TaskMessage from a string
+func (t *TaskMessage) FromString(ts string) (*TaskMessage, error) {
+	tb := []byte(ts)
+	err := json.Unmarshal(tb, &t)
 	if err != nil {
 		return nil, err
 	}

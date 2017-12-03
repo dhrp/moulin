@@ -21,6 +21,38 @@ type Client struct {
 	clientpool *pool.Pool
 }
 
+type QueueInfo struct {
+	incomingListLength int
+	receivedListLength int
+	nonExpiredCount    int
+	expiredCount       int
+	completedCount     int
+	failedCount        int
+	runningItems       []TaskMessage
+}
+
+func (obj *QueueInfo) toString() string {
+
+	stringFmt := `
+incomingListLength %d
+receivedListLength %d
+nonExpiredCount    %d
+expiredCount       %d
+completedCount     %d
+failedCount        %d
+runningItems       "some"
+	`
+	_ = stringFmt
+
+	return fmt.Sprintf(stringFmt,
+		obj.incomingListLength,
+		obj.receivedListLength,
+		obj.nonExpiredCount,
+		obj.expiredCount,
+		obj.completedCount,
+		obj.failedCount)
+}
+
 // Init Initializes the Rouge.Client, and saves it to the client struct
 func (red *Client) Init() error {
 
@@ -86,7 +118,7 @@ func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
 	if member != "" {
 		msg, errIn := red.get(queueID + "." + member)
 		if errIn == nil {
-			taskMessage.FromString([]byte(msg))
+			taskMessage.FromString(msg)
 			log.Println("LOAD END:  Returning expired member")
 			log.Println("**********")
 			return taskMessage
@@ -101,7 +133,7 @@ func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
 	// the next brpoplpush, but before the popQueueAndSaveKeyToSet
 	msg, err := red.rpop(receivedList)
 	if err == nil {
-		taskMessage.FromString([]byte(msg))
+		taskMessage.FromString(msg)
 		log.Println("LOAD END:  Returning lost member (member on received queue)")
 		log.Println("**********")
 		return taskMessage
@@ -113,14 +145,14 @@ func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
 
 	// fetch from received queue, save the message to it's key
 	// and add the ID to the running set
-	msg, err = red.popQueueAndSaveKeyToSet(queueID, expirationSec)
+	msg, err = red.popQueueAndSaveKeyToSet(queueID, receivedList, runningSet, expirationSec)
 	if err != nil {
 		// retry.
 		log.Println("Didn't find an item on the received queue (exception), will try to pop a new one from incoming queue")
 		red.Load(queueID, expirationSec)
 	}
 
-	taskMessage.FromString([]byte(msg))
+	taskMessage.FromString(msg)
 
 	log.Println("LOAD END:  Returning new member from the incoming queue")
 	log.Println("**********")
@@ -170,7 +202,7 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 	log.Println("COMPLETE START")
 
 	from := fmt.Sprintf("%s.running", queueID)
-	to := fmt.Sprintf("%s.complete", queueID)
+	to := fmt.Sprintf("%s.completed", queueID)
 	member := taskID
 
 	ok, err := red.moveMemberFromSetToSet(from, to, member)
@@ -183,25 +215,75 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 	return ok, nil
 }
 
-func (red *Client) GetProgress(queueID string) (string, error) {
+// GetProgress gets the status of the current lists in the queue
+func (red *Client) GetProgress(queueID string) (QueueInfo, error) {
+
+	var queueInfo QueueInfo
+	var err error
+
 	// show length of incoming list
+	queueInfo.incomingListLength, err = red.getListLength(queueID)
+	if err != nil {
+		log.Panic(err)
+	}
+
 	// show length of received list
+	queueInfo.receivedListLength, err = red.getListLength(queueID + ".received")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	// ZRANGE test.queue.running 0 100
+	// SCAN 0 MATCH test.queue.* COUNT 1000
 
 	// show count of items in data store, and the total size consumed
+	// to get this it's probably best to self add each item to a set, and
+	// then just get the length of that set.
+
+	// the size of all the keys combined should also be something like
+	// a counter with an inec
 
 	// show count of non-expired items in running set
+	now := time.Now().Unix()
+	score := strconv.FormatInt(now, 10)
+	queueInfo.nonExpiredCount, _ = red.zcount(queueID+".running", score, "inf")
+
 	// show count of expired items in running set
+	queueInfo.expiredCount, _ = red.zcount(queueID+".running", "-inf", score)
+
 	// show count of items in completed set
+	queueInfo.completedCount, _ = red.zcount(queueID+".completed", "-inf", "inf")
+
 	// show count of items in failed set
+	queueInfo.failedCount, _ = red.zcount(queueID+".failed", "-inf", "inf")
+
+	// show a list of all items (with content) of now working on and failed
+	//  * which worker is working on it
+	//  * command and arguments
+
+	runningMembers, _ := red.zrangebyscore(queueID+".running", score, "inf", 30)
+	for i := 0; i < len(runningMembers); i++ {
+		fmt.Println(runningMembers[i])
+		item, err := red.get(queueID + "." + runningMembers[i])
+		if err != nil {
+			log.Panic(err)
+		}
+		var taskMessage TaskMessage
+		taskMessage.FromString(item)
+
+		queueInfo.runningItems = append(queueInfo.runningItems, taskMessage)
+	}
+
+	// ZRANGE test.queue.running 0 100
 
 	// show a list of all items (with content) of now working on and failed
 	//  * which worker is working on it
 	//  * command and arguments
 
 	// get size of all keys for this queue combined
+	log.Println(queueInfo.toString())
 
-	answer := "foobar"
-	return answer, nil
+	return queueInfo, nil
 }
 
 // AddTask adds a new task to a queue.

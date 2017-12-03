@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -33,9 +34,13 @@ func (suite *RedClientTestSuite) SetupSuite() {
 // func (suite *RedClientTestSuite) GenerateMessage() string {
 func GenerateMessage(body string) TaskMessage {
 
-	timestamp := strconv.FormatInt(time.Now().UnixNano(), 10)
+	randomID := ksuid.New().String()
+	randomBytes := ksuid.New()
+	_ = randomBytes
+
+	// timestamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	taskMessage := TaskMessage{
-		ID:   timestamp,
+		ID:   randomID,
 		Body: body,
 		Envs: []string{"FOO=BAR", "CHUNK=1"},
 	}
@@ -58,12 +63,15 @@ func (suite *RedClientTestSuite) TestpopQueueAndSaveKeyToSet() {
 	queueID := "test.queue"
 	expirationSec := 333
 
+	receivedList := queueID + ".received"
+	runningSet := queueID + ".running"
+
 	// positive case; item exists
-	msg, _ := suite.red.popQueueAndSaveKeyToSet(queueID, expirationSec)
+	msg, _ := suite.red.popQueueAndSaveKeyToSet(queueID, receivedList, runningSet, expirationSec)
 	suite.Equal(taskMessage.ToString(), msg, "message from popQueueAndSaveKeyToSet didn't match expectation")
 
 	// negative case; no item on received queue
-	_, err := suite.red.popQueueAndSaveKeyToSet("empty", expirationSec)
+	_, err := suite.red.popQueueAndSaveKeyToSet("empty", receivedList, runningSet, expirationSec)
 	suite.NotEmpty(err, "should have thrown an error when no items in queue")
 
 }
@@ -111,7 +119,7 @@ func (suite *RedClientTestSuite) TestSortedSet() {
 
 	log.Println("### Testing Sorted Set Start")
 
-	queueID := "test.sorted_sets"
+	queueID := "test.queue"
 	taskID := "123123123123"
 
 	set := queueID + ".running"
@@ -166,7 +174,6 @@ func (suite *RedClientTestSuite) TestSortedSet() {
 }
 
 // complete sets
-
 func (suite *RedClientTestSuite) TestLoadPhase() {
 	log.Println("**********")
 	log.Println("LOAD PHASE TEST")
@@ -288,6 +295,36 @@ func (suite *RedClientTestSuite) TestAddTasksFromFile() {
 	suite.Nil(err, "AddTasksFromFile gave an error")
 	suite.Equal(queueLength, 6, "Expected the queue to have this new size")
 	suite.Equal(count, 6, "We added 6 items")
+}
+
+func (suite *RedClientTestSuite) TestGetProgress() {
+
+	var err error
+	var result QueueInfo
+	queueID := "test.queue"
+	var msg TaskMessage
+
+	// push three messages
+	msg = GenerateMessage("message 1")
+	suite.red.lpush(queueID, msg.ToString())
+	msg = GenerateMessage("message 2")
+	suite.red.lpush(queueID, msg.ToString())
+	msg = GenerateMessage("message 3")
+	suite.red.lpush(queueID, msg.ToString())
+
+	// Load two items from the queue
+	suite.red.Load(queueID, 300)
+	msg = suite.red.Load(queueID, 300)
+
+	// Complete one item
+	suite.red.Complete(queueID, msg.ID)
+
+	// Now check if we see what we expect
+	result, err = suite.red.GetProgress("test.queue")
+	suite.Nil(err, "GetProgress should not give any errors")
+	suite.Equal(1, result.incomingListLength)
+	suite.Equal(1, result.nonExpiredCount)
+	suite.Equal(1, result.completedCount)
 
 }
 
@@ -300,14 +337,11 @@ func (suite *RedClientTestSuite) TearDownTest() {
 	suite.red.del("test.queue.running")
 	suite.red.del("test.queue.received")
 	suite.red.del("test.queue.completed")
-	//
-	suite.red.del("test.sorted_sets.running")
-	suite.red.del("test.sorted_sets.future")
 	suite.red.del("nonexistent")
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {
-	suite.red.flushdb()
+	// suite.red.flushdb()
 	log.Println("closing suite, cleaning up Redis")
 }
 

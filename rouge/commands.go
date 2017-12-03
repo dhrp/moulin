@@ -61,7 +61,7 @@ func (c *Client) fetchAndUpdateExpired(set string, expirationSec int) (string, e
 	return member, nil
 }
 
-func (c *Client) popQueueAndSaveKeyToSet(queueID string, expirationSec int) (string, error) {
+func (c *Client) popQueueAndSaveKeyToSet(queueID, receivedList, targetSet string, expirationSec int) (string, error) {
 
 	expiresAt := int64(time.Now().Unix()) + int64(expirationSec)
 	score := strconv.FormatInt(expiresAt, 10)
@@ -93,10 +93,7 @@ func (c *Client) popQueueAndSaveKeyToSet(queueID string, expirationSec int) (str
 		return {taskID, destinationKey, value};
 		`
 
-	receivedList := queueID + ".received"
-	destinationSet := queueID + ".running"
-
-	resp := c.clientpool.Cmd("EVAL", luaScript, 2, receivedList, destinationSet, queueID, score)
+	resp := c.clientpool.Cmd("EVAL", luaScript, 2, receivedList, targetSet, queueID, score)
 	if err := resp.Err; err != nil {
 		if err.Error() == "No item in queue" {
 			return "", err
@@ -185,6 +182,19 @@ func (c *Client) get(key string) (string, error) {
 	return resp.Str()
 }
 
+func (c *Client) getListLength(key string) (int, error) {
+
+	log.Printf("Doing: LLEN %s", key)
+	resp := c.clientpool.Cmd("LLEN", key)
+	if err := resp.Err; err != nil {
+		log.Panic(err)
+	}
+	if resp.IsType(redis.Nil) {
+		return 0, errors.New("Nothing found at key")
+	}
+	return resp.Int()
+}
+
 func (c *Client) set(key string, value string) (bool, error) {
 
 	log.Println("Doing: SET " + key + " " + value)
@@ -210,6 +220,8 @@ func (c *Client) zadd(set string, score string, member string) (int, error) {
 // // ZADD Q_working_set <now>+300 queue-id.task-id
 func (c *Client) zaddUpdate(set string, score string, member string) (int, error) {
 
+	// ToDo: instead of returning an error if the item had been updated in the same
+	// second, return success. -- will havo to be EVAL GET then ZADD
 	log.Printf("Doing: ZADD %s XX CH %s %s", set, score, member)
 	// ZADD the element. XX says only update existing items, CH means return us the amount
 	// of *changed* elements. So 1 is good (found an item, AND changed a score. 0 is bad)
@@ -218,7 +230,18 @@ func (c *Client) zaddUpdate(set string, score string, member string) (int, error
 		log.Panic(err)
 		return 0, err
 	}
+
 	return count, nil
+}
+
+func (c *Client) zrange(set string, from int, to int) ([]string, error) {
+
+	log.Printf("Doing: ZRANGE %s %d %d", set, from, to)
+	members, err := c.clientpool.Cmd("ZRANGE", set, from, to).List()
+	if err != nil {
+		log.Panic(err)
+	}
+	return members, nil
 }
 
 func (c *Client) zrevrange(set string, from int, to int) ([]string, error) {
@@ -229,6 +252,19 @@ func (c *Client) zrevrange(set string, from int, to int) ([]string, error) {
 		log.Panic(err)
 	}
 	return members, nil
+}
+
+func (c *Client) zcount(set string, from string, to string) (int, error) {
+	log.Printf("Doing: ZCOUNT %s %s %s", set, from, to)
+	return c.clientpool.Cmd("ZCOUNT", set, from, to).Int()
+}
+
+func (c *Client) zrangebyscore(set string, from string, to string, limit int) ([]string, error) {
+	resp := c.clientpool.Cmd("ZRANGEBYSCORE", set, from, to, "LIMIT", 0, limit)
+	if resp.Err != nil {
+		// return []string, resp.Err
+	}
+	return resp.List()
 }
 
 // Do an atomic from sorted list; to sorted list operation
