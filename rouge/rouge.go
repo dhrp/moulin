@@ -21,38 +21,6 @@ type Client struct {
 	clientpool *pool.Pool
 }
 
-type QueueInfo struct {
-	incomingListLength int
-	receivedListLength int
-	nonExpiredCount    int
-	expiredCount       int
-	completedCount     int
-	failedCount        int
-	runningItems       []TaskMessage
-}
-
-func (obj *QueueInfo) toString() string {
-
-	stringFmt := `
-incomingListLength %d
-receivedListLength %d
-nonExpiredCount    %d
-expiredCount       %d
-completedCount     %d
-failedCount        %d
-runningItems       "some"
-	`
-	_ = stringFmt
-
-	return fmt.Sprintf(stringFmt,
-		obj.incomingListLength,
-		obj.receivedListLength,
-		obj.nonExpiredCount,
-		obj.expiredCount,
-		obj.completedCount,
-		obj.failedCount)
-}
-
 // Init Initializes the Rouge.Client, and saves it to the client struct
 func (red *Client) Init() error {
 
@@ -216,7 +184,7 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 }
 
 // GetProgress gets the status of the current lists in the queue
-func (red *Client) GetProgress(queueID string) (QueueInfo, error) {
+func (red *Client) Progress(queueID string) (QueueInfo, error) {
 
 	var queueInfo QueueInfo
 	var err error
@@ -281,7 +249,7 @@ func (red *Client) GetProgress(queueID string) (QueueInfo, error) {
 	//  * command and arguments
 
 	// get size of all keys for this queue combined
-	log.Println(queueInfo.toString())
+	log.Println(queueInfo.ToString())
 
 	return queueInfo, nil
 }

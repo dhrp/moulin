@@ -126,3 +126,14 @@ func (s *server) Complete(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 		Detail: "sucessfully marked item as complete",
 	}, nil
 }
+
+// Progress returns a status struct about the requested queue
+func (s *server) Progress(ctx context.Context, in *pb.RequestMessage) (*pb.QueueProgress, error) {
+
+	queueInfo, err := s.rouge.Progress(in.QueueID)
+	if err != nil {
+		fmt.Println(queueInfo)
+	}
+
+	return queueInfo.ToBuff(), nil
+}

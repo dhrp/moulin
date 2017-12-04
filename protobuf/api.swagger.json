@@ -33,12 +33,12 @@
     },
     "/v1/queue/{queueID}": {
       "get": {
-        "operationId": "LoadTask",
+        "operationId": "Progress",
         "responses": {
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/APITask"
+              "$ref": "#/definitions/APIQueueProgress"
             }
           }
         },
@@ -124,6 +124,47 @@
     }
   },
   "definitions": {
+    "APIQueueProgress": {
+      "type": "object",
+      "properties": {
+        "incomingListLength": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "receivedListLength": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "nonExpiredCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "expiredCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "completedCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "failedCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "runningTasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/APITask"
+          }
+        },
+        "expiredTasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/APITask"
+          }
+        }
+      }
+    },
     "APIStatus": {
       "type": "string",
       "enum": [

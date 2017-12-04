@@ -297,7 +297,7 @@ func (suite *RedClientTestSuite) TestAddTasksFromFile() {
 	suite.Equal(count, 6, "We added 6 items")
 }
 
-func (suite *RedClientTestSuite) TestGetProgress() {
+func (suite *RedClientTestSuite) TestProgress() {
 
 	var err error
 	var result QueueInfo
@@ -320,7 +320,7 @@ func (suite *RedClientTestSuite) TestGetProgress() {
 	suite.red.Complete(queueID, msg.ID)
 
 	// Now check if we see what we expect
-	result, err = suite.red.GetProgress("test.queue")
+	result, err = suite.red.Progress("test.queue")
 	suite.Nil(err, "GetProgress should not give any errors")
 	suite.Equal(1, result.incomingListLength)
 	suite.Equal(1, result.nonExpiredCount)

@@ -39,6 +39,12 @@ service API {
     };
   }
 
+  rpc Progress (RequestMessage) returns (QueueProgress) {
+    option (google.api.http) = {
+      get: "/v1/queue/{queueID}"
+    };
+  }
+
 }
 
 enum Status {
@@ -70,4 +76,15 @@ message RequestMessage {
 message StatusMessage {
   Status status = 1;
   string detail = 2;
+}
+
+message QueueProgress {
+  int32 incomingListLength = 1;
+	int32 receivedListLength = 2;
+	int32 nonExpiredCount = 3;
+	int32 expiredCount = 4;
+	int32 completedCount = 5;
+	int32 failedCount = 6;
+  repeated Task runningTasks = 7;
+  repeated Task expiredTasks = 8;
 }

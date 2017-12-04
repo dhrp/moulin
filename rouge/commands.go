@@ -259,10 +259,10 @@ func (c *Client) zcount(set string, from string, to string) (int, error) {
 	return c.clientpool.Cmd("ZCOUNT", set, from, to).Int()
 }
 
-func (c *Client) zrangebyscore(set string, from string, to string, limit int) ([]string, error) {
+func (c *Client) zrangebyscore(set string, from string, to string, limit int) (lst []string, err error) {
 	resp := c.clientpool.Cmd("ZRANGEBYSCORE", set, from, to, "LIMIT", 0, limit)
 	if resp.Err != nil {
-		// return []string, resp.Err
+		return lst, resp.Err
 	}
 	return resp.List()
 }

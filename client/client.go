@@ -118,3 +118,14 @@ func (g GRPCDriver) Complete(queueID, taskID string) *pb.StatusMessage {
 	log.Printf("Result: %s", r.Status)
 	return r
 }
+
+// Progress ges the status for a queue
+func (g GRPCDriver) Progress(queueID string) (progress *pb.QueueProgress) {
+	// then load a message
+	p, err := g.client.Progress(context.Background(), &pb.RequestMessage{QueueID: queueID})
+	if err != nil {
+		log.Fatalf("could not get progress: %v", err)
+	}
+	log.Printf("Incoming queue length: %d", p.IncomingListLength)
+	return p
+}
