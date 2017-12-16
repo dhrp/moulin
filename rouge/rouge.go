@@ -183,38 +183,30 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 	return ok, nil
 }
 
-// GetProgress gets the status of the current lists in the queue
+// Progress gets the status of the current lists in the queue
 func (red *Client) Progress(queueID string) (QueueInfo, error) {
+	log.Println("***************")
+	log.Println("PROGRESS START")
 
 	var queueInfo QueueInfo
 	var err error
 
 	// show length of incoming list
-	queueInfo.incomingListLength, err = red.getListLength(queueID)
+	queueInfo.incomingCount, err = red.getListLength(queueID)
 	if err != nil {
 		log.Panic(err)
 	}
 
 	// show length of received list
-	queueInfo.receivedListLength, err = red.getListLength(queueID + ".received")
+	queueInfo.receivedCount, err = red.getListLength(queueID + ".received")
 	if err != nil {
 		log.Panic(err)
 	}
 
-	// ZRANGE test.queue.running 0 100
-	// SCAN 0 MATCH test.queue.* COUNT 1000
-
-	// show count of items in data store, and the total size consumed
-	// to get this it's probably best to self add each item to a set, and
-	// then just get the length of that set.
-
-	// the size of all the keys combined should also be something like
-	// a counter with an inec
-
 	// show count of non-expired items in running set
 	now := time.Now().Unix()
 	score := strconv.FormatInt(now, 10)
-	queueInfo.nonExpiredCount, _ = red.zcount(queueID+".running", score, "inf")
+	queueInfo.runningCount, _ = red.zcount(queueID+".running", score, "inf")
 
 	// show count of expired items in running set
 	queueInfo.expiredCount, _ = red.zcount(queueID+".running", "-inf", score)
@@ -225,62 +217,47 @@ func (red *Client) Progress(queueID string) (QueueInfo, error) {
 	// show count of items in failed set
 	queueInfo.failedCount, _ = red.zcount(queueID+".failed", "-inf", "inf")
 
-	// show a list of all items (with content) of now working on and failed
-	//  * which worker is working on it
-	//  * command and arguments
-
-	runningMembers, _ := red.zrangebyscore(queueID+".running", score, "inf", 30)
-	for i := 0; i < len(runningMembers); i++ {
-		fmt.Println(runningMembers[i])
-		item, err := red.get(queueID + "." + runningMembers[i])
-		if err != nil {
-			log.Panic(err)
-		}
-		var taskMessage TaskMessage
-		taskMessage.FromString(item)
-
-		queueInfo.runningItems = append(queueInfo.runningItems, taskMessage)
-	}
-
-	// ZRANGE test.queue.running 0 100
-
-	// show a list of all items (with content) of now working on and failed
-	//  * which worker is working on it
-	//  * command and arguments
-
-	// get size of all keys for this queue combined
 	log.Println(queueInfo.ToString())
-
+	log.Println("PROGRESS END")
+	log.Println("***************")
 	return queueInfo, nil
 }
 
 // Peek gets a list of the most or least recent items from a given queue
 // and queue phase
-func (red *Client) Peek(queueID, phase string, limit int) ([]TaskMessage, error) {
+func (red *Client) Peek(queueID, phase string, limit int) (int, []TaskMessage, error) {
+	log.Println("***************")
+	log.Println("PEEK START")
 	var rawList, members []string
 	var taskList []TaskMessage
 	var err error
 	var item string
+	var count int
 
 	if phase == "incoming" {
 		from := 0 - limit // set is inclusive
 		to := -1          // this is the last item
+		count, _ = red.getListLength(queueID)
 		rawList, err = red.lrange(queueID, from, to)
 		if err != nil {
-			return taskList, errors.Wrap(err, "couldn't lrange incoming list")
+			return count, taskList, errors.Wrap(err, "couldn't lrange incoming list")
 		}
 	} else {
 		if phase == "running" {
 			timestamp := int64(time.Now().Unix())
 			score := strconv.FormatInt(timestamp, 10)
+			count, _ = red.zcount(queueID+".running", score, "inf")
 			members, err = red.zrangebyscore(queueID+".running", score, "inf", limit)
 		} else if phase == "expired" {
 			timestamp := int64(time.Now().Unix())
 			score := strconv.FormatInt(timestamp, 10)
+			count, _ = red.zcount(queueID+".running", "-inf", score)
 			members, err = red.zrangebyscore(queueID+".running", "-inf", score, limit)
+		} else {
+			return 0, nil, errors.New("phase not found")
 		}
 		if err != nil {
-			return taskList, errors.Wrap(err, "failed to peek")
+			return count, taskList, errors.Wrap(err, "failed to peek")
 		}
 
 		for i := 0; i < len(members); i++ {
@@ -288,7 +265,7 @@ func (red *Client) Peek(queueID, phase string, limit int) ([]TaskMessage, error)
 			rawList = append(rawList, item)
 		}
 		if err != nil {
-			return taskList, errors.Wrap(err, "failed getting one of the items from store")
+			return count, taskList, errors.Wrap(err, "failed getting one of the items from store")
 		}
 	}
 
@@ -298,7 +275,9 @@ func (red *Client) Peek(queueID, phase string, limit int) ([]TaskMessage, error)
 		taskList = append(taskList, task)
 	}
 
-	return taskList, nil
+	log.Println("PEEK END")
+	log.Println("***************")
+	return count, taskList, nil
 }
 
 // AddTask adds a new task to a queue.

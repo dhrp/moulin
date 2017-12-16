@@ -38,32 +38,28 @@ func (t *TaskMessage) FromString(ts string) (*TaskMessage, error) {
 
 // QueueInfo is a type meant for representing progress
 type QueueInfo struct {
-	incomingListLength int
-	receivedListLength int
-	nonExpiredCount    int
-	expiredCount       int
-	completedCount     int
-	failedCount        int
-	runningItems       []TaskMessage
+	incomingCount  int
+	receivedCount  int
+	runningCount   int
+	expiredCount   int
+	completedCount int
+	failedCount    int
 }
 
 func (obj *QueueInfo) ToString() string {
 
 	stringFmt := `
-incomingListLength %d
-receivedListLength %d
-nonExpiredCount    %d
-expiredCount       %d
-completedCount     %d
-failedCount        %d
-runningItems       "some"
-	`
-	_ = stringFmt
+incomingCount  %d
+receivedCount  %d
+runningCount   %d
+expiredCount   %d
+completedCount %d
+failedCount    %d`
 
 	return fmt.Sprintf(stringFmt,
-		obj.incomingListLength,
-		obj.receivedListLength,
-		obj.nonExpiredCount,
+		obj.incomingCount,
+		obj.receivedCount,
+		obj.runningCount,
 		obj.expiredCount,
 		obj.completedCount,
 		obj.failedCount)
@@ -72,14 +68,12 @@ runningItems       "some"
 // ToBuff converts a QueueInfo object to it's protobuf representation
 func (obj *QueueInfo) ToBuff() *pb.QueueProgress {
 	qp := &pb.QueueProgress{
-		IncomingListLength: int32(obj.incomingListLength),
-		ReceivedListLength: int32(obj.receivedListLength),
-		NonExpiredCount:    int32(obj.nonExpiredCount),
-		ExpiredCount:       int32(obj.expiredCount),
-		CompletedCount:     int32(obj.completedCount),
-		FailedCount:        int32(obj.failedCount),
-		// runningItems       "some"
-		// expiredItems       "some"
+		IncomingCount:  int32(obj.incomingCount),
+		ReceivedCount:  int32(obj.receivedCount),
+		RunningCount:   int32(obj.runningCount),
+		ExpiredCount:   int32(obj.expiredCount),
+		CompletedCount: int32(obj.completedCount),
+		FailedCount:    int32(obj.failedCount),
 	}
 	return qp
 }

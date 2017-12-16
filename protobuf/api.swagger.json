@@ -33,12 +33,12 @@
     },
     "/v1/queue/{queueID}": {
       "get": {
-        "operationId": "Progress",
+        "operationId": "LoadTask",
         "responses": {
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/APIQueueProgress"
+              "$ref": "#/definitions/APITask"
             }
           }
         },
@@ -51,6 +51,19 @@
           },
           {
             "name": "expirationSec",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "phase",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -85,6 +98,94 @@
             "schema": {
               "$ref": "#/definitions/APITask"
             }
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/queue/{queueID}/progress": {
+      "get": {
+        "operationId": "Progress",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/APIQueueProgress"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "expirationSec",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "phase",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/queue/{queueID}/{phase}/{limit}": {
+      "get": {
+        "operationId": "Peek",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/APITaskList"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "phase",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "expirationSec",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -127,15 +228,15 @@
     "APIQueueProgress": {
       "type": "object",
       "properties": {
-        "incomingListLength": {
+        "incomingCount": {
           "type": "integer",
           "format": "int32"
         },
-        "receivedListLength": {
+        "receivedCount": {
           "type": "integer",
           "format": "int32"
         },
-        "nonExpiredCount": {
+        "runningCount": {
           "type": "integer",
           "format": "int32"
         },
@@ -150,18 +251,6 @@
         "failedCount": {
           "type": "integer",
           "format": "int32"
-        },
-        "runningTasks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/APITask"
-          }
-        },
-        "expiredTasks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/APITask"
-          }
         }
       }
     },
@@ -210,6 +299,21 @@
         }
       },
       "title": "Task is the definition of a task"
+    },
+    "APITaskList": {
+      "type": "object",
+      "properties": {
+        "totalItems": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/APITask"
+          }
+        }
+      }
     }
   }
 }

@@ -67,6 +67,8 @@ func getRestMux(certPool *x509.CertPool, opts ...runtime.ServeMuxOption) (*runti
 
 	// Which multiplexer to register on.
 	gwmux := runtime.NewServeMux()
+	// gwmux := runtime.NewServeMux(runtime.WithMarshalerOption(runtime.MIMEWildcard,
+	// 	&runtime.JSONPb{OrigName: true, EmitDefaults: true}))
 	err := pb.RegisterAPIHandlerFromEndpoint(ctx, gwmux, upstreamGRPCServerAddress, dopts)
 	if err != nil {
 		fmt.Printf("serve: %v\n", err)

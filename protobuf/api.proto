@@ -41,7 +41,13 @@ service API {
 
   rpc Progress (RequestMessage) returns (QueueProgress) {
     option (google.api.http) = {
-      get: "/v1/queue/{queueID}"
+      get: "/v1/queue/{queueID}/progress"
+    };
+  }
+
+  rpc Peek (RequestMessage) returns (TaskList) {
+    option (google.api.http) = {
+      get: "/v1/queue/{queueID}/{phase}/{limit}"
     };
   }
 
@@ -71,6 +77,8 @@ message Meta {
 message RequestMessage {
   string queueID = 1;
   int32 expirationSec = 2;
+  string phase = 3;  // only valid for peek
+  int32 limit = 4; // only valid for peek
 }
 
 message StatusMessage {
@@ -79,12 +87,15 @@ message StatusMessage {
 }
 
 message QueueProgress {
-  int32 incomingListLength = 1;
-	int32 receivedListLength = 2;
-	int32 nonExpiredCount = 3;
+  int32 incomingCount = 1;
+	int32 receivedCount = 2;
+	int32 runningCount = 3;
 	int32 expiredCount = 4;
 	int32 completedCount = 5;
 	int32 failedCount = 6;
-  repeated Task runningTasks = 7;
-  repeated Task expiredTasks = 8;
+}
+
+message TaskList {
+  int32 totalItems = 1;
+  repeated Task tasks = 2;
 }

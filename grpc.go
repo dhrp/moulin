@@ -10,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 
 	pb "github.com/nerdalize/moulin/protobuf"
@@ -129,11 +131,32 @@ func (s *server) Complete(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 
 // Progress returns a status struct about the requested queue
 func (s *server) Progress(ctx context.Context, in *pb.RequestMessage) (*pb.QueueProgress, error) {
-
 	queueInfo, err := s.rouge.Progress(in.QueueID)
 	if err != nil {
-		fmt.Println(queueInfo)
+		return nil, grpc.Errorf(codes.Unknown, "could not get progress")
+	}
+	return queueInfo.ToBuff(), nil
+}
+
+// Peek returns a count and messageList
+func (s *server) Peek(ctx context.Context, in *pb.RequestMessage) (*pb.TaskList, error) {
+	// var task pb.Task
+	taskList := &pb.TaskList{}
+
+	// get TaskMessageList
+	count, tml, err := s.rouge.Peek(in.QueueID, in.Phase, int(in.Limit))
+	if err != nil {
+		return nil, grpc.Errorf(codes.Unknown, "could not get progress")
 	}
 
-	return queueInfo.ToBuff(), nil
+	taskList.TotalItems = int32(count)
+	for i := 0; i < len(tml); i++ {
+		task := &pb.Task{
+			TaskID: tml[i].ID,
+			Body:   tml[i].Body,
+			Envs:   tml[i].Envs,
+		}
+		taskList.Tasks = append(taskList.Tasks, task)
+	}
+	return taskList, nil
 }

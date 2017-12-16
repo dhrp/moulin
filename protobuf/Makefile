@@ -15,3 +15,6 @@ all:
 		--swagger_out=logtostderr=true:. \
 		api.proto
 	go generate .
+
+clean:
+	rm api.pb.go api.pb.gw.go api.swagger.json

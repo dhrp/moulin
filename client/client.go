@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/metadata"
@@ -57,8 +58,7 @@ func (g GRPCDriver) GetHealth() (status pb.StatusMessage, err error) {
 	return *r, nil
 }
 
-// PushTask loads a task from the queue
-// ToDo: add a timeout, for testing, and allow selecting queueID
+// PushTask pushes a task onto the queue
 func (g GRPCDriver) PushTask(task *pb.Task) *pb.StatusMessage {
 	// then load a message
 
@@ -81,7 +81,6 @@ func (g GRPCDriver) LoadTask(queueID string) (task *pb.Task) {
 	if err != nil {
 		log.Fatalf("could not load task: %v", err)
 	}
-	log.Printf("Task: %s", t.TaskID)
 	return t
 }
 
@@ -99,7 +98,6 @@ func (g GRPCDriver) HeartBeat(queueID, taskID string, expirationSec int32) *pb.S
 	if err != nil {
 		log.Fatalf("could not complete heartbeat: %v", err)
 	}
-	log.Printf("Result: %s", r.Status)
 	return r
 }
 
@@ -120,12 +118,24 @@ func (g GRPCDriver) Complete(queueID, taskID string) *pb.StatusMessage {
 }
 
 // Progress ges the status for a queue
-func (g GRPCDriver) Progress(queueID string) (progress *pb.QueueProgress) {
+func (g GRPCDriver) Progress(queueID string) (progress *pb.QueueProgress, err error) {
 	// then load a message
-	p, err := g.client.Progress(context.Background(), &pb.RequestMessage{QueueID: queueID})
+	progress, err = g.client.Progress(context.Background(), &pb.RequestMessage{QueueID: queueID})
 	if err != nil {
-		log.Fatalf("could not get progress: %v", err)
+		return progress, grpc.Errorf(codes.Unknown, "could not get progress")
 	}
-	log.Printf("Incoming queue length: %d", p.IncomingListLength)
-	return p
+	return progress, nil
+}
+
+// Peek get the n (limit) 'next' messages for a given queue/phase
+func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskList, err error) {
+	// peek into queue phase
+	taskList, err = g.client.Peek(context.Background(),
+		&pb.RequestMessage{QueueID: queueID, Phase: phase, Limit: limit})
+	if err != nil {
+		log.Printf(err.Error())
+		return taskList, grpc.Errorf(codes.Unknown, err.Error())
+	}
+	log.Printf("Incoming queue length: %d", taskList.TotalItems)
+	return taskList, nil
 }

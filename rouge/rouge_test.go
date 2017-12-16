@@ -322,15 +322,15 @@ func (suite *RedClientTestSuite) TestProgress() {
 	// Now check if we see what we expect
 	result, err = suite.red.Progress("test.queue")
 	suite.Nil(err, "GetProgress should not give any errors")
-	suite.Equal(1, result.incomingListLength)
-	suite.Equal(1, result.nonExpiredCount)
+	suite.Equal(1, result.incomingCount)
+	suite.Equal(1, result.runningCount)
 	suite.Equal(1, result.completedCount)
-
 }
 
 func (suite *RedClientTestSuite) TestPeek() {
 	var taskList []TaskMessage
 	queueID := "test.queue"
+	var count int
 
 	suite.red.AddTaskFromString(queueID, "task one")
 	suite.red.AddTaskFromString(queueID, "task two")
@@ -340,21 +340,24 @@ func (suite *RedClientTestSuite) TestPeek() {
 	suite.Len(members, 3)
 
 	// Check length of incoming
-	taskList, err = suite.red.Peek(queueID, "incoming", 30)
+	count, taskList, err = suite.red.Peek(queueID, "incoming", 30)
 	suite.Nil(err)
 	suite.Len(taskList, 3)
+	suite.Equal(3, count)
 
 	// Check length of running
 	suite.red.Load(queueID, 50)
-	taskList, err = suite.red.Peek(queueID, "running", 30)
+	count, taskList, err = suite.red.Peek(queueID, "running", 30)
 	suite.Nil(err)
 	suite.Len(taskList, 1)
+	suite.Equal(1, count)
 
 	// Check length of expired
 	suite.red.Load(queueID, -50)
-	taskList, err = suite.red.Peek(queueID, "expired", 30)
+	count, taskList, err = suite.red.Peek(queueID, "expired", 30)
 	suite.Nil(err)
 	suite.Len(taskList, 1)
+	suite.Equal(1, count)
 }
 
 func (suite *RedClientTestSuite) BeforeTest() {
