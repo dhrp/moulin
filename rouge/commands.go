@@ -254,6 +254,17 @@ func (c *Client) zrevrange(set string, from int, to int) ([]string, error) {
 	return members, nil
 }
 
+func (c *Client) lrange(list string, from int, to int) ([]string, error) {
+	var members []string
+	log.Printf("Doing: LRANGE %s %d %d", list, from, to)
+	r := c.clientpool.Cmd("LRANGE", list, from, to)
+	if err := r.Err; err == nil {
+		members, err = r.List()
+		return members, err
+	}
+	return members, nil
+}
+
 func (c *Client) zcount(set string, from string, to string) (int, error) {
 	log.Printf("Doing: ZCOUNT %s %s %s", set, from, to)
 	return c.clientpool.Cmd("ZCOUNT", set, from, to).Int()

@@ -328,6 +328,35 @@ func (suite *RedClientTestSuite) TestProgress() {
 
 }
 
+func (suite *RedClientTestSuite) TestPeek() {
+	var taskList []TaskMessage
+	queueID := "test.queue"
+
+	suite.red.AddTaskFromString(queueID, "task one")
+	suite.red.AddTaskFromString(queueID, "task two")
+	suite.red.AddTaskFromString(queueID, "task three")
+	members, err := suite.red.lrange(queueID, 0, 30)
+	suite.Nil(err)
+	suite.Len(members, 3)
+
+	// Check length of incoming
+	taskList, err = suite.red.Peek(queueID, "incoming", 30)
+	suite.Nil(err)
+	suite.Len(taskList, 3)
+
+	// Check length of running
+	suite.red.Load(queueID, 50)
+	taskList, err = suite.red.Peek(queueID, "running", 30)
+	suite.Nil(err)
+	suite.Len(taskList, 1)
+
+	// Check length of expired
+	suite.red.Load(queueID, -50)
+	taskList, err = suite.red.Peek(queueID, "expired", 30)
+	suite.Nil(err)
+	suite.Len(taskList, 1)
+}
+
 func (suite *RedClientTestSuite) BeforeTest() {
 }
 

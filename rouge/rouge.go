@@ -254,6 +254,53 @@ func (red *Client) Progress(queueID string) (QueueInfo, error) {
 	return queueInfo, nil
 }
 
+// Peek gets a list of the most or least recent items from a given queue
+// and queue phase
+func (red *Client) Peek(queueID, phase string, limit int) ([]TaskMessage, error) {
+	var rawList, members []string
+	var taskList []TaskMessage
+	var err error
+	var item string
+
+	if phase == "incoming" {
+		from := 0 - limit // set is inclusive
+		to := -1          // this is the last item
+		rawList, err = red.lrange(queueID, from, to)
+		if err != nil {
+			return taskList, errors.Wrap(err, "couldn't lrange incoming list")
+		}
+	} else {
+		if phase == "running" {
+			timestamp := int64(time.Now().Unix())
+			score := strconv.FormatInt(timestamp, 10)
+			members, err = red.zrangebyscore(queueID+".running", score, "inf", limit)
+		} else if phase == "expired" {
+			timestamp := int64(time.Now().Unix())
+			score := strconv.FormatInt(timestamp, 10)
+			members, err = red.zrangebyscore(queueID+".running", "-inf", score, limit)
+		}
+		if err != nil {
+			return taskList, errors.Wrap(err, "failed to peek")
+		}
+
+		for i := 0; i < len(members); i++ {
+			item, err = red.get(queueID + "." + members[i])
+			rawList = append(rawList, item)
+		}
+		if err != nil {
+			return taskList, errors.Wrap(err, "failed getting one of the items from store")
+		}
+	}
+
+	for i := 0; i < len(rawList); i++ {
+		task := TaskMessage{}
+		task.FromString(rawList[i])
+		taskList = append(taskList, task)
+	}
+
+	return taskList, nil
+}
+
 // AddTask adds a new task to a queue.
 func (red *Client) AddTask(queueID string, task TaskMessage) (int, error) {
 
