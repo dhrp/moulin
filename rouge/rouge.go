@@ -65,7 +65,7 @@ func (red *Client) Info() (string, error) {
 }
 
 // Load loads a message from the queue, and mark it as processing
-func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
+func (red *Client) Load(queueID string, expirationSec int) (TaskMessage, error) {
 
 	if red.clientpool == nil {
 		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
@@ -78,6 +78,15 @@ func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
 	runningSet := queueID + ".running"
 	var taskMessage TaskMessage
 
+	// log.Println("START FAKING")
+	// fakemsg := red.brpop(queueID)
+	//
+	// taskMessage.FromString(fakemsg)
+	// log.Println("END FAKING")
+	// log.Println("LOAD END:  Returning lost member (member on received queue)")
+	// log.Println("**********")
+	// return taskMessage, nil
+
 	// try if there is an expired task to pick up, and if so, return it.
 	member, err := red.fetchAndUpdateExpired(runningSet, expirationSec)
 	if err != nil && err.Error() != "No expired members retrieved" {
@@ -89,10 +98,13 @@ func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
 			taskMessage.FromString(msg)
 			log.Println("LOAD END:  Returning expired member")
 			log.Println("**********")
-			return taskMessage
+			return taskMessage, nil
 		}
 		if errIn.Error() == "Nothing found at key" {
 			log.Println(errIn)
+			return TaskMessage{}, errIn
+		} else {
+			return TaskMessage{}, errIn
 		}
 	}
 
@@ -104,28 +116,41 @@ func (red *Client) Load(queueID string, expirationSec int) TaskMessage {
 		taskMessage.FromString(msg)
 		log.Println("LOAD END:  Returning lost member (member on received queue)")
 		log.Println("**********")
-		return taskMessage
+		return taskMessage, nil
+	} else {
+		// let go, this is ok
 	}
 
 	// block; wait and switch a task from the queue to the received queue
-	debugmsg := red.brpoplpush(queueID, receivedList)
-	log.Println(debugmsg)
+	_, err = red.brpoplpush(queueID, receivedList)
+	if err != nil {
+		log.Println(err.Error(), "couldn't load item from incoming to received")
+		return TaskMessage{}, err
+	}
 
 	// fetch from received queue, save the message to it's key
 	// and add the ID to the running set
 	msg, err = red.popQueueAndSaveKeyToSet(queueID, receivedList, runningSet, expirationSec)
 	if err != nil {
 		// retry.
-		log.Println("Didn't find an item on the received queue (exception), will try to pop a new one from incoming queue")
+		log.Println("Didn't find an item on the received queue (exception), " +
+			"will try to pop a new one from incoming queue")
 		red.Load(queueID, expirationSec)
 	}
-
+	if msg == "" {
+		log.Panic("message shouldn't be empty")
+	}
 	taskMessage.FromString(msg)
+
+	if taskMessage.Body == "" {
+		log.Printf("Error: msg was %s", msg)
+		log.Panic("Body is empty!")
+	}
 
 	log.Println("LOAD END:  Returning new member from the incoming queue")
 	log.Println("**********")
 
-	return taskMessage
+	return taskMessage, nil
 }
 
 // Heartbeat updates the status of a message
@@ -282,6 +307,8 @@ func (red *Client) Peek(queueID, phase string, limit int) (int, []TaskMessage, e
 
 // AddTask adds a new task to a queue.
 func (red *Client) AddTask(queueID string, task TaskMessage) (int, error) {
+	log.Println("***************")
+	log.Println("ADDTASK START")
 
 	if red.clientpool == nil {
 		return -1, errors.New("Connection to Redis not initialized. Did you forget to initialize?")
@@ -293,11 +320,31 @@ func (red *Client) AddTask(queueID string, task TaskMessage) (int, error) {
 		log.Panic(err)
 	}
 
+	log.Println("ADDTASK END")
+	log.Println("***************")
 	return newlength, nil
+}
+
+// ClearQueue deletes everything belonging to a given queue.
+func (red *Client) ClearQueue(queueID string) (bool, error) {
+	log.Println("***************")
+	log.Println("CLEARQUEUE START")
+
+	red.del(queueID)
+	red.del(queueID + ".running")
+	red.del(queueID + ".expired")
+	red.del(queueID + ".completed")
+	// ToDo: !! Clear the individual keys
+
+	log.Println("CLEARQUEUE END")
+	log.Println("***************")
+	return true, nil
 }
 
 // AddTaskFromString converts a plain string to a task and puts it on the queue
 func (red *Client) AddTaskFromString(queueID string, message string) (int, error) {
+	log.Println("***************")
+	log.Println("ADDTASKSFROMSTRING START")
 
 	id := ksuid.New().String()
 	task := TaskMessage{ID: id, Body: message}
@@ -305,11 +352,15 @@ func (red *Client) AddTaskFromString(queueID string, message string) (int, error
 	if err != nil {
 		return -1, errors.Wrap(err, "failed to add tasks from string")
 	}
+	log.Println("ADDTASKSFROMSTRING END")
+	log.Println("***************")
 	return len, nil
 }
 
 // AddTasksFromFile is a function for loading from a file
 func (red *Client) AddTasksFromFile(queueID, filePath string) (queueLength int, count int, err error) {
+	log.Println("***************")
+	log.Println("ADDTASKSFROMFILE START")
 	if red == nil {
 		log.Panic("rouge not initialized in AddTasksFromFile")
 	}
@@ -351,5 +402,7 @@ func (red *Client) AddTasksFromFile(queueID, filePath string) (queueLength int, 
 	}
 
 	log.Printf("sucessfully added %d items, queue now %d items long", count, queueLength)
+	log.Println("ADDTASKSFROMFILE END")
+	log.Println("***************")
 	return queueLength, count, nil
 }

@@ -1,6 +1,7 @@
 package rouge
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -93,20 +94,29 @@ func (c *Client) popQueueAndSaveKeyToSet(queueID, receivedList, targetSet string
 		return {taskID, destinationKey, value};
 		`
 
+	log.Printf("Doing: EVAL <luascript> 2 %s %s %s %s", receivedList, targetSet, queueID, score)
 	resp := c.clientpool.Cmd("EVAL", luaScript, 2, receivedList, targetSet, queueID, score)
 	if err := resp.Err; err != nil {
 		if err.Error() == "No item in queue" {
+			fmt.Println(err.Error())
 			return "", err
 		}
 		log.Panic(err)
 	}
 
-	result, _ := resp.Array()
-	taskID, _ := result[0].Str()
-	destinationKey, _ := result[1].Str()
-	msg, _ := result[2].Str()
+	var taskID, destinationKey, msg string
+	var err error
 
-	log.Printf("COMPLETED: Set task (%s) on key %s, body: %s", taskID, destinationKey, msg)
+	result, _ := resp.Array()
+	taskID, _ = result[0].Str()
+	destinationKey, _ = result[1].Str()
+	msg, err = result[2].Str()
+
+	if err != nil {
+		log.Panic("error in getting string from popqueueandsavetoset result")
+	}
+
+	log.Printf("Completed: Set task (%s) with value %s on key %s", taskID, msg, destinationKey)
 	return msg, nil
 }
 
@@ -159,14 +169,14 @@ func (c *Client) brpop(key string) string {
 	return msg
 }
 
-func (c *Client) brpoplpush(from string, to string) string {
+func (c *Client) brpoplpush(from string, to string) (string, error) {
 
 	log.Printf("Doing: BRPOPLPUSH %s %s 0", from, to)
-	msg, err := c.clientpool.Cmd("BRPOPLPUSH", from, to, 0).Str()
-	if err != nil {
-		log.Panic(err)
+	res := c.clientpool.Cmd("BRPOPLPUSH", from, to, 0)
+	if err := res.Err; err != nil {
+		return "", err
 	}
-	return msg
+	return res.Str()
 }
 
 func (c *Client) get(key string) (string, error) {

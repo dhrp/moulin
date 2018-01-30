@@ -46,6 +46,7 @@ type QueueInfo struct {
 	failedCount    int
 }
 
+// ToString converts a QueueInfo object to string
 func (obj *QueueInfo) ToString() string {
 
 	stringFmt := `

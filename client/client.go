@@ -74,18 +74,18 @@ func (g GRPCDriver) PushTask(task *pb.Task) *pb.StatusMessage {
 }
 
 // LoadTask loads a task from the queue
-// ToDo: add a timeout, for testing, and allow selecting queueID
-func (g GRPCDriver) LoadTask(queueID string) (task *pb.Task) {
+func (g GRPCDriver) LoadTask(queueID string) (task *pb.Task, err error) {
 	// then load a message
 	t, err := g.client.LoadTask(context.Background(), &pb.RequestMessage{QueueID: queueID})
 	if err != nil {
 		log.Fatalf("could not load task: %v", err)
 	}
-	return t
+	log.Printf("DEBUG (client.go): received %v", t)
+	return t, nil
 }
 
 // HeartBeat updates the expiry of an item on the running set
-// ToDo: add a timeout, for testing, and allow selecting queueID
+// ToDo: add a timeout, for testing
 func (g GRPCDriver) HeartBeat(queueID, taskID string, expirationSec int32) *pb.StatusMessage {
 	// then load a message
 	task := &pb.Task{
@@ -130,8 +130,11 @@ func (g GRPCDriver) Progress(queueID string) (progress *pb.QueueProgress, err er
 // Peek get the n (limit) 'next' messages for a given queue/phase
 func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskList, err error) {
 	// peek into queue phase
-	taskList, err = g.client.Peek(context.Background(),
-		&pb.RequestMessage{QueueID: queueID, Phase: phase, Limit: limit})
+	requestMessage := &pb.RequestMessage{
+		QueueID: queueID,
+		Phase:   phase,
+		Limit:   limit}
+	taskList, err = g.client.Peek(context.Background(), requestMessage)
 	if err != nil {
 		log.Printf(err.Error())
 		return taskList, grpc.Errorf(codes.Unknown, err.Error())

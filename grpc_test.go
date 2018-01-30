@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"log"
 
+	"google.golang.org/grpc/metadata"
+
 	"github.com/golang/protobuf/ptypes/empty"
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/metadata"
 
 	pb "github.com/nerdalize/moulin/protobuf"
 )
