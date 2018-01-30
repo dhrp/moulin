@@ -15,13 +15,13 @@ run:
 	./moulin
 
 test:
-	go test github.com/nerdalize/moulin/rouge
-	go test github.com/nerdalize/moulin
+	go test github.com/dhrp/moulin/rouge
+	go test github.com/dhrp/moulin
 
 test-client: build
 	{ ./moulin & }; \
 	pid=$$!; \
-	go test github.com/nerdalize/moulin/client; \
+	go test github.com/dhrp/moulin/client; \
 	r=$$?; \
 	kill $$pid; \
 	exit $$r

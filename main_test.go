@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	"github.com/nerdalize/moulin/rouge"
+	"github.com/dhrp/moulin/rouge"
 )
 
 type MainTestSuite struct {

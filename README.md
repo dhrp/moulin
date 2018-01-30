@@ -2,7 +2,7 @@
 
 'Moulin' is 'Mill' in French. A Dutch saying goes: *wie het eerst komt, wie het eerst maalt*. Who brings their wheat to the mill first, is the first to get his/her wheat milled, and is the first to eat.
 
-For information how it works, read [here](https://github.com/nerdalize/moulin/blob/master/how_it_works.md)
+For information how it works, read [here](https://github.com/dhrp/moulin/blob/master/how_it_works.md)
 
 ## Usage
 

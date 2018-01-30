@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/nerdalize/moulin/client"
+	"github.com/dhrp/moulin/client"
 )
 
 func main() {

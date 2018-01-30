@@ -3,9 +3,9 @@ package client
 import (
 	"log"
 
+	"github.com/dhrp/moulin/certificates"
+	pb "github.com/dhrp/moulin/protobuf"
 	"github.com/golang/protobuf/ptypes/empty"
-	"github.com/nerdalize/moulin/certificates"
-	pb "github.com/nerdalize/moulin/protobuf"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"

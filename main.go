@@ -18,10 +18,10 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
 
-	"github.com/nerdalize/moulin/certificates"
-	// "github.com/nerdalize/moulin/kafkaproducer"
-	pb "github.com/nerdalize/moulin/protobuf"
-	"github.com/nerdalize/moulin/rouge"
+	"github.com/dhrp/moulin/certificates"
+	// "github.com/dhrp/moulin/kafkaproducer"
+	pb "github.com/dhrp/moulin/protobuf"
+	"github.com/dhrp/moulin/rouge"
 )
 
 const (

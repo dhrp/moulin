@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	pb "github.com/nerdalize/moulin/protobuf"
-	"github.com/nerdalize/moulin/rouge"
+	pb "github.com/dhrp/moulin/protobuf"
+	"github.com/dhrp/moulin/rouge"
 )
 
 type MainTestSuite struct {

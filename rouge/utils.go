@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	pb "github.com/nerdalize/moulin/protobuf"
+	pb "github.com/dhrp/moulin/protobuf"
 )
 
 // TaskMessage is the 'message' format used on our queue

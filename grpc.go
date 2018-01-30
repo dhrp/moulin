@@ -14,8 +14,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 
-	pb "github.com/nerdalize/moulin/protobuf"
-	"github.com/nerdalize/moulin/rouge"
+	pb "github.com/dhrp/moulin/protobuf"
+	"github.com/dhrp/moulin/rouge"
 )
 
 func (s *server) Healthz(ctx context.Context, in *empty.Empty) (*pb.StatusMessage, error) {
