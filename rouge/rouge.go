@@ -2,6 +2,7 @@ package rouge
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/mediocregopher/radix.v2/pool"
-	"github.com/mediocregopher/radix.v2/redis"
 	"github.com/segmentio/ksuid"
 )
 
@@ -24,21 +24,22 @@ type Client struct {
 // Init Initializes the Rouge.Client, and saves it to the client struct
 func (red *Client) Init() error {
 
-	df := func(network, addr string) (*redis.Client, error) {
-		client, err := redis.Dial(network, addr)
-		if err != nil {
-			return nil, err
-		}
-		// TODO: Review if we need a password
-		// set password with CONFIG SET requirepass "nevermind"
-		// if err = client.Cmd("AUTH", "nevermind").Err; err != nil {
-		// 	client.Close()
-		// 	return nil, err
-		// }
-		return client, nil
-	}
+	// df := func(network, addr string) (*redis.Client, error) {
+	// 	client, err := redis.Dial(network, addr)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	// TODO: Review if we need a password
+	// 	// set password with CONFIG SET requirepass "nevermind"
+	// 	// if err = client.Cmd("AUTH", "nevermind").Err; err != nil {
+	// 	// 	client.Close()
+	// 	// 	return nil, err
+	// 	// }
+	// 	return client, nil
+	// }
 
-	pool, err := pool.NewCustom("tcp", red.Host, 10, df)
+	// pool, err := pool.NewCustom("tcp", red.Host, 10, df)
+	pool, err := pool.New("tcp", red.Host, 10)
 	if err != nil {
 		return errors.Wrap(err, "init new connection to redis failed")
 	}
@@ -62,6 +63,24 @@ func (red *Client) Info() (string, error) {
 		log.Panic(err)
 	}
 	return resp.Str()
+}
+
+//
+// func reportDone(ctx context.Context) {
+// 	done := <-ctx.Done()
+// 	fmt.Println("Context done!!", done)
+// }
+
+// SlimLoad loads a message from the queue in a lean way. For debugging
+func (red *Client) SlimLoad(ctx context.Context, queueID string, expirationSec int) (TaskMessage, error) {
+
+	msg := red.brpop(ctx, queueID)
+
+	var taskMessage TaskMessage
+	// taskMessage := TaskMessage{ID: "myid", Body: "echo mybody"}
+	taskMessage.FromString(msg)
+
+	return taskMessage, nil
 }
 
 // Load loads a message from the queue, and mark it as processing

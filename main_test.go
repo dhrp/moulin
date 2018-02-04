@@ -25,13 +25,13 @@ func (suite *MainTestSuite) SetupSuite() {
 	suite.server = &server{rouge: rougeClient}
 }
 
-func (suite *MainTestSuite) TestCreateGlobalServer() {
-	globalServer := createGlobalServer()
-	log.Println(globalServer)
-
-	suite.Equal("localhost:8042", globalServer.Addr, "host address doesn't match what we set")
-	suite.Equal(1, len(globalServer.TLSConfig.Certificates), "Server should have a TLS certificate set")
-}
+// func (suite *MainTestSuite) TestCreateGlobalServer() {
+// 	globalServer := createGlobalServer()
+// 	log.Println(globalServer)
+//
+// 	suite.Equal("localhost:8042", globalServer.Addr, "host address doesn't match what we set")
+// 	suite.Equal(1, len(globalServer.TLSConfig.Certificates), "Server should have a TLS certificate set")
+// }
 
 func (suite *MainTestSuite) TearDownSuite() {
 	log.Println("closing suite, This would be a good place to close and clean up things")
