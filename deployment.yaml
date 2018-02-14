@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Deployment
+metadata:
+  name: moulin-server
+  labels:
+    app: moulin
+spec:
+  replicas: 1
+    spec:
+      containers:
+        - image: dhrp/moulin
+          name: server
+          ports:
+            - containerPort: 8042
+        - image: redis
+          name: redis

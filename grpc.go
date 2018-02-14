@@ -75,9 +75,10 @@ func (s *server) PushTask(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task, error) {
 
 	queueID := in.QueueID
-	taskMessage, err := s.rouge.Load(queueID, 300)
+	taskMessage, err := s.rouge.Load(ctx, queueID, 300)
 	if err != nil {
-		log.Println("[grpc.go] error in loading message")
+		err = errors.Wrap(err, "[grpc.go] error in loading message")
+		log.Println(err)
 		return &pb.Task{}, err
 	}
 
