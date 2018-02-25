@@ -11,7 +11,7 @@ RUN apt-get update && \
 RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 && chmod +x /usr/local/bin/dep
 
 # install protoc
-RUN curl -L https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip > protoc.zip && \						
+RUN curl -L https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip > protoc.zip && \
 	unzip protoc.zip -d .
 
 RUN go get google.golang.org/grpc && \
@@ -37,5 +37,6 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /go/bin/moulin *.go
 # COPY --from=0 /go/bin/moulin /go/bin/moulin
 # COPY --from=0 /go/src/github.com/dhrp/moulin/certificates/* /go/bin/certificates/
 
+ENV REDIS_HOST="localhost"
 EXPOSE 8042
 ENTRYPOINT ["/go/bin/moulin"]

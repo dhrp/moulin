@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -164,7 +165,15 @@ func main() {
 	// pb.RegisterAPIServer(s, &server{})
 	// // Register reflection service on gRPC server.
 	// reflection.Register(s)
-	rougeClient := &rouge.Client{Host: "localhost:6379"}
+
+	redishost := os.Getenv("REDIS_HOST")
+	if redishost != "" {
+		redishost = redishost + ":6379"
+	} else {
+		redishost = "localhost:6379"
+	}
+
+	rougeClient := &rouge.Client{Host: redishost}
 	rougeClient.Init()
 	// kfk := &kafkaproducer.KFK{Broker: "localhost:9092"}
 	// kfk.Init()

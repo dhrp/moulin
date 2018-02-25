@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -16,7 +17,6 @@ import (
 )
 
 const (
-	address     = "localhost:8042"
 	defaultName = "world"
 )
 
@@ -28,6 +28,12 @@ type GRPCDriver struct {
 
 // NewGRPCDriver creates and initializes a new GRPC client and connection
 func NewGRPCDriver() *GRPCDriver {
+
+	address := os.Getenv("MOULIN_SERVER")
+	if address == "" {
+		address = "localhost:8042"
+		fmt.Println("setting moulinServer to localhost:8042")
+	}
 
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
