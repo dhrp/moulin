@@ -84,92 +84,108 @@ func (red *Client) SlimLoad(ctx context.Context, queueID string, expirationSec i
 }
 
 // Load loads a message from the queue, and mark it as processing
-func (red *Client) Load(queueID string, expirationSec int) (TaskMessage, error) {
+func (red *Client) Load(ctx context.Context, queueID string, expirationSec int) (TaskMessage, error) {
 
-	if red.clientpool == nil {
-		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
-	}
+	for {
 
-	log.Println("**********")
-	log.Println("LOAD START")
+		if red.clientpool == nil {
+			log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
+		}
 
-	receivedList := queueID + ".received"
-	runningSet := queueID + ".running"
-	var taskMessage TaskMessage
+		log.Println("**********")
+		log.Println("LOAD START")
 
-	// log.Println("START FAKING")
-	// fakemsg := red.brpop(queueID)
-	//
-	// taskMessage.FromString(fakemsg)
-	// log.Println("END FAKING")
-	// log.Println("LOAD END:  Returning lost member (member on received queue)")
-	// log.Println("**********")
-	// return taskMessage, nil
+		receivedList := queueID + ".received"
+		runningSet := queueID + ".running"
+		var taskMessage TaskMessage
 
-	// try if there is an expired task to pick up, and if so, return it.
-	member, err := red.fetchAndUpdateExpired(runningSet, expirationSec)
-	if err != nil && err.Error() != "No expired members retrieved" {
-		log.Panic(err)
-	}
-	if member != "" {
-		msg, errIn := red.get(queueID + "." + member)
-		if errIn == nil {
-			taskMessage.FromString(msg)
-			log.Println("LOAD END:  Returning expired member")
+		// try if there is an expired task to pick up, and if so, return it.
+		member, err := red.fetchAndUpdateExpired(runningSet, expirationSec)
+		if err != nil && err.Error() != "No expired members retrieved" {
+			log.Panic(err)
+		}
+		if member != "" {
+			msg, errIn := red.get(queueID + "." + member)
+			if errIn == nil {
+				taskMessage.FromString(msg)
+				log.Println("LOAD END:  Returning expired member")
+				log.Println("**********")
+				return taskMessage, nil
+			}
+			if errIn.Error() == "Nothing found at key" {
+				log.Println(errIn)
+				return TaskMessage{}, errIn
+			} else {
+				return TaskMessage{}, errIn
+			}
+		}
+
+		// try if there is a task on the received queue to pick up this
+		// rare condition would only happen if there would be a failure after
+		// the next brpoplpush, but before the popQueueAndSaveKeyToSet
+		// rpopmsg, err := red.rpop(receivedList)
+		// ToDo: Review what we do with using this same function twice, with different variable names
+		rcvdmsg, err := red.popQueueAndSaveKeyToSet(queueID, receivedList, runningSet, expirationSec)
+		if err == nil {
+			taskMessage.FromString(rcvdmsg)
+			log.Println("LOAD END:  Returning lost member (member on received queue)")
 			log.Println("**********")
 			return taskMessage, nil
-		}
-		if errIn.Error() == "Nothing found at key" {
-			log.Println(errIn)
-			return TaskMessage{}, errIn
 		} else {
-			return TaskMessage{}, errIn
+			// let go, this is ok
 		}
-	}
 
-	// try if there is a task on the received queue to pick up this
-	// rare condition would only happen if there would be a failure after
-	// the next brpoplpush, but before the popQueueAndSaveKeyToSet
-	msg, err := red.rpop(receivedList)
-	if err == nil {
-		taskMessage.FromString(msg)
-		log.Println("LOAD END:  Returning lost member (member on received queue)")
+		waitChan := make(chan error)
+
+		go func(waitChan chan error) {
+			// block; wait and switch a task from the queue to the received queue
+			_, err := red.brpoplpush(queueID, receivedList)
+			log.Println("Received message from the queue..")
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Println("Recovered from disconnected channel error. Going to move item back to incoming")
+					_, errin := red.lpoprpush(receivedList, queueID)
+					if err != nil {
+						log.Panic(errin)
+					}
+				}
+			}()
+			waitChan <- err
+		}(waitChan)
+
+		select {
+		case err := <-waitChan:
+			if err != nil {
+				return TaskMessage{}, errors.Wrap(err, "failed brpoplpush")
+			}
+			log.Println("ok, got msg")
+		case <-ctx.Done():
+			log.Println("cancelling blocking pop")
+			close(waitChan)
+			return TaskMessage{}, errors.New("the context was cancelled")
+		}
+
+		// fetch from received queue, save the message to it's key
+		// and add the ID to the running set
+		setmsg, err := red.popQueueAndSaveKeyToSet(queueID, receivedList, runningSet, expirationSec)
+		if err != nil {
+			// retry.
+			log.Println("Didn't find an item on the received queue (exception), " +
+				"will try to pop a new one from incoming queue")
+			continue
+		}
+		taskMessage.FromString(setmsg)
+
+		if taskMessage.Body == "" {
+			log.Printf("Error: msg was %s", setmsg)
+			log.Panic("Body is empty!")
+		}
+
+		log.Println("LOAD END:  Returning new member from the incoming queue")
 		log.Println("**********")
+
 		return taskMessage, nil
-	} else {
-		// let go, this is ok
 	}
-
-	// block; wait and switch a task from the queue to the received queue
-	_, err = red.brpoplpush(queueID, receivedList)
-	if err != nil {
-		log.Println(err.Error(), "couldn't load item from incoming to received")
-		return TaskMessage{}, err
-	}
-
-	// fetch from received queue, save the message to it's key
-	// and add the ID to the running set
-	msg, err = red.popQueueAndSaveKeyToSet(queueID, receivedList, runningSet, expirationSec)
-	if err != nil {
-		// retry.
-		log.Println("Didn't find an item on the received queue (exception), " +
-			"will try to pop a new one from incoming queue")
-		red.Load(queueID, expirationSec)
-	}
-	if msg == "" {
-		log.Panic("message shouldn't be empty")
-	}
-	taskMessage.FromString(msg)
-
-	if taskMessage.Body == "" {
-		log.Printf("Error: msg was %s", msg)
-		log.Panic("Body is empty!")
-	}
-
-	log.Println("LOAD END:  Returning new member from the incoming queue")
-	log.Println("**********")
-
-	return taskMessage, nil
 }
 
 // Heartbeat updates the status of a message
@@ -219,7 +235,7 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 
 	ok, err := red.moveMemberFromSetToSet(from, to, member)
 	if err != nil {
-		return false, errors.Wrap(err, "couldn't complete any items")
+		return false, errors.Wrap(err, "couldn't complete the item")
 	}
 
 	log.Println("COMPLETE END")

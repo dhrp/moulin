@@ -117,6 +117,10 @@ func (c *Client) popQueueAndSaveKeyToSet(queueID, receivedList, targetSet string
 		log.Panic("error in getting string from popqueueandsavetoset result")
 	}
 
+	if msg == "" {
+		log.Panic("message was empty, which cannot be ?!?")
+	}
+
 	log.Printf("Completed: Set task (%s) with value %s on key %s", taskID, msg, destinationKey)
 	return msg, nil
 }
@@ -219,6 +223,26 @@ func (c *Client) brpoplpush(from string, to string) (string, error) {
 		return "", err
 	}
 	return res.Str()
+}
+
+func (c *Client) lpoprpush(from string, to string) (int, error) {
+
+	log.Printf("Puting member back onto the incoming queue")
+	luaScript := `
+		local popped = redis.call('LPOP', KEYS[1]);
+		local result = redis.call('RPUSH', KEYS[2], popped);
+		return result
+	`
+	log.Printf("Doing: LPOPRPUSH (luascript) %s %s", from, to)
+
+	res := c.clientpool.Cmd("EVAL", luaScript, 2, from, to)
+	if err := res.Err; err != nil {
+		return -1, err
+	}
+	if res.IsType(redis.Nil) {
+		return -1, errors.New("No received members put back")
+	}
+	return res.Int()
 }
 
 func (c *Client) get(key string) (string, error) {
@@ -356,10 +380,12 @@ func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (
 	}
 
 	if removed, _ = lst[0].Int(); removed == 0 {
-		return false, errors.New("item was not removed from source set")
+		log.Printf("Item %v was not removed from source set!", member)
+		return false, errors.New(fmt.Sprintf("item %v was not removed from source set", member))
 	}
 	if added, _ = lst[1].Int(); added == 0 {
-		return false, errors.New("item already existed in target set")
+		log.Printf("Item %v already existed in target set!", member)
+		return false, errors.New(fmt.Sprintf("item %v already existed in target set", member))
 	}
 
 	return true, nil

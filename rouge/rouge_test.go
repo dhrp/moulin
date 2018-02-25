@@ -85,12 +85,26 @@ func (suite *RedClientTestSuite) TestRPOP() {
 	suite.red.lpush("test.queue.received", taskMessage.ToString())
 
 	msg, _ := suite.red.rpop("test.queue.received")
-
 	suite.Equal(taskMessage.ToString(), msg, "what was pushed is not what was popped")
 
 	msg, _ = suite.red.rpop("test.queue.doesntexist")
 	suite.Equal(msg, "", "what was pushed is not what was popped")
 
+}
+
+func (suite *RedClientTestSuite) TestLPOPRPUSH() {
+
+	log.Println("*** testing LPOPRPUSH")
+
+	taskMessage := GenerateMessage(suite.sampleMsgBody)
+	suite.red.lpush("test.queue.received", taskMessage.ToString())
+
+	count, err := suite.red.lpoprpush("test.queue.received", "test.queue")
+	suite.Equal(count, 1)
+	suite.Nil(err)
+
+	msg, _ := suite.red.rpop("test.queue")
+	suite.Equal(msg, taskMessage.ToString(), "what was pushed is not what was popped")
 }
 
 func (suite *RedClientTestSuite) TestPushAndPopQueue() {
@@ -183,6 +197,8 @@ func (suite *RedClientTestSuite) TestLoadPhase() {
 	log.Println("**********")
 	log.Println("LOAD PHASE TEST")
 
+	ctx := context.TODO()
+
 	// prepare two items on the queue
 	taskMessage1 := GenerateMessage(suite.sampleMsgBody)
 	suite.red.lpush("test.queue", taskMessage1.ToString())
@@ -191,7 +207,7 @@ func (suite *RedClientTestSuite) TestLoadPhase() {
 	suite.red.lpush("test.queue", taskMessage2.ToString())
 
 	// load one back
-	result, err := suite.red.Load("test.queue", 300)
+	result, err := suite.red.Load(ctx, "test.queue", 300)
 	suite.Nil(err, "Didn't expect error")
 	suite.Equal(taskMessage1, result, "The first message put on the queue is not what came back")
 
@@ -210,7 +226,7 @@ func (suite *RedClientTestSuite) TestLoadPhase() {
 	updated, _ := suite.red.zadd("test.queue.running", expiredScore, result.ID)
 	suite.Equal(0, updated, "A member was added, but not that was not expected")
 
-	expiredTaskMessage, err := suite.red.Load("test.queue", 300)
+	expiredTaskMessage, err := suite.red.Load(ctx, "test.queue", 300)
 	suite.Nil(err, "Didn't expect error")
 	suite.Equal(taskMessage1, expiredTaskMessage, "The what was on the key of the expired member is not what was expected")
 
@@ -268,13 +284,14 @@ func (suite *RedClientTestSuite) TestRedEndToEnd() {
 	log.Println("*******************")
 	log.Println("END TO END TEST")
 	queueID := "test.queue"
+	ctx := context.TODO()
 
 	// Prep an item on the queue
 	taskMessage := GenerateMessage("testing end to end")
 	suite.red.lpush(queueID, taskMessage.ToString())
 
 	// Load it from the queue
-	msg, err := suite.red.Load(queueID, 300)
+	msg, err := suite.red.Load(ctx, queueID, 300)
 	suite.Nil(err, "Didn't expect error")
 	taskID := msg.ID
 
@@ -311,6 +328,7 @@ func (suite *RedClientTestSuite) TestProgress() {
 	var result QueueInfo
 	queueID := "test.queue"
 	var msg TaskMessage
+	ctx := context.TODO()
 
 	// push three messages
 	msg = GenerateMessage("message 1")
@@ -321,8 +339,8 @@ func (suite *RedClientTestSuite) TestProgress() {
 	suite.red.lpush(queueID, msg.ToString())
 
 	// Load two items from the queue
-	suite.red.Load(queueID, 300)
-	msg, err = suite.red.Load(queueID, 300)
+	suite.red.Load(ctx, queueID, 300)
+	msg, err = suite.red.Load(ctx, queueID, 300)
 	suite.Nil(err, "Didn't expect error")
 
 	// Complete one item
@@ -340,6 +358,7 @@ func (suite *RedClientTestSuite) TestPeek() {
 	var taskList []TaskMessage
 	queueID := "test.queue"
 	var count int
+	ctx := context.TODO()
 
 	suite.red.AddTaskFromString(queueID, "task one")
 	suite.red.AddTaskFromString(queueID, "task two")
@@ -355,14 +374,14 @@ func (suite *RedClientTestSuite) TestPeek() {
 	suite.Equal(3, count)
 
 	// Check length of running
-	suite.red.Load(queueID, 50)
+	suite.red.Load(ctx, queueID, 50)
 	count, taskList, err = suite.red.Peek(queueID, "running", 30)
 	suite.Nil(err)
 	suite.Len(taskList, 1)
 	suite.Equal(1, count)
 
 	// Check length of expired
-	suite.red.Load(queueID, -50)
+	suite.red.Load(ctx, queueID, -50)
 	count, taskList, err = suite.red.Peek(queueID, "expired", 30)
 	suite.Nil(err)
 	suite.Len(taskList, 1)

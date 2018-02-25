@@ -74,8 +74,11 @@ func (s *server) PushTask(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 // LoadTask returns a task from the redis queue
 func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task, error) {
 
-	taskMessage, err := s.rouge.SlimLoad(ctx, in.QueueID, 300)
+	queueID := in.QueueID
+	taskMessage, err := s.rouge.Load(ctx, queueID, 300)
 	if err != nil {
+		err = errors.Wrap(err, "[grpc.go] error in loading message")
+		log.Println(err)
 		return &pb.Task{}, err
 	}
 	return &pb.Task{TaskID: taskMessage.ID, Body: taskMessage.Body}, nil
