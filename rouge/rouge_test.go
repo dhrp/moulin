@@ -119,7 +119,9 @@ func (suite *RedClientTestSuite) TestPushAndPopQueue() {
 	suite.Equal(listLength, 1, "Expected exactly 1 item in queue")
 
 	// check if the same item is retrieved
-	resp := suite.red.brpop("test.queue")
+
+	ctx := context.TODO()
+	resp := suite.red.brpop(ctx, "test.queue")
 	suite.Equal(resp, taskMessageStr)
 
 	// set an item

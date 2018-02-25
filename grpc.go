@@ -81,26 +81,34 @@ func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task,
 		log.Println(err)
 		return &pb.Task{}, err
 	}
+	return &pb.Task{TaskID: taskMessage.ID, Body: taskMessage.Body}, nil
 
-	log.Printf("DEBUG (grpc.go): received %v", taskMessage)
-
-	task := &pb.Task{
-		TaskID: taskMessage.ID,
-		Body:   taskMessage.Body,
-	}
-
-	log.Printf("DEBUG (grpc.go): sending %v", task)
-	// if taskMessage == rouge.TaskMessage{} {
-	// 	log.Panic("Message empty!")
+	// queueID := in.QueueID
+	// taskMessage, err := s.rouge.Load(queueID, 300)
+	// if err != nil {
+	// 	log.Println("[grpc.go] error in loading message")
+	// 	return &pb.Task{}, err
 	// }
-	// if task.Body == "" {
-	// 	log.Panic("I'm returning a task with empty body.")
+	// log.Printf("DEBUG (grpc.go): received %v", taskMessage)
+	//
+	// task := &pb.Task{
+	// 	TaskID: taskMessage.ID,
+	// 	Body:   taskMessage.Body,
 	// }
-	if task.TaskID == "" {
-		log.Panic("I'm returning a task with not taskID.")
-	}
-
-	return task, nil
+	//
+	// log.Printf("DEBUG (grpc.go): sending %v", task)
+	// // if taskMessage == rouge.TaskMessage{} {
+	// // 	log.Panic("Message empty!")
+	// // }
+	// // if task.Body == "" {
+	// // 	log.Panic("I'm returning a task with empty body.")
+	// // }
+	// if task.TaskID == "" {
+	// 	log.Panic("I'm returning a task with not taskID.")
+	// }
+	//
+	// log.Printf("really sending now..")
+	// return task, nil
 }
 
 // LoadTask returns a task from the redis queue

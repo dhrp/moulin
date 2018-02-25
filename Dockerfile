@@ -1,16 +1,17 @@
 FROM golang:1.9 AS builder
 
-ENV DEP_VERSION="v0.4.1"
+ENV DEP_VERSION="0.4.1"
+ENV PROTOC_VERSION="3.5.1"
 
 RUN apt-get update && \
 	apt-get install unzip &&\
 	rm -rf /var/lib/apt/lists/
 
 # Install Go Dep
-RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/$DEP_VERSION/dep-linux-amd64 && chmod +x /usr/local/bin/dep
+RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 && chmod +x /usr/local/bin/dep
 
 # install protoc
-RUN curl -L https://github.com/google/protobuf/releases/download/v3.2.0/protoc-3.2.0-linux-x86_64.zip > protoc.zip && \
+RUN curl -L https://github.com/google/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip > protoc.zip && \						
 	unzip protoc.zip -d .
 
 RUN go get google.golang.org/grpc && \

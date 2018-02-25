@@ -32,48 +32,6 @@
       }
     },
     "/v1/queue/{queueID}": {
-      "get": {
-        "operationId": "LoadTask",
-        "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "$ref": "#/definitions/APITask"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "queueID",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "expirationSec",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "phase",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          }
-        ],
-        "tags": [
-          "API"
-        ]
-      },
       "post": {
         "operationId": "PushTask",
         "responses": {

@@ -2,16 +2,16 @@ package client
 
 import (
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/dhrp/moulin/certificates"
 	pb "github.com/dhrp/moulin/protobuf"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -29,22 +29,22 @@ type GRPCDriver struct {
 // NewGRPCDriver creates and initializes a new GRPC client and connection
 func NewGRPCDriver() *GRPCDriver {
 
-	keyPair, certPool := certificates.GetCert()
-	_ = keyPair
-
-	var opts []grpc.DialOption
-	creds := credentials.NewClientTLSFromCert(certPool, "localhost:8042")
-	opts = append(opts, grpc.WithTransportCredentials(creds))
-	conn, err := grpc.Dial(address, opts...)
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		grpclog.Fatalf("fail to dial: %v", err)
+		log.Fatalf("did not connect: %v", err)
 	}
 
+	sigchan := make(chan os.Signal, 2)
+	signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigchan
+		log.Println("closing connection")
+		conn.Close()
+		os.Exit(1)
+	}()
+
 	apiClient := pb.NewAPIClient(conn)
-
-	gd := &GRPCDriver{Connection: conn, client: apiClient}
-
-	return gd
+	return &GRPCDriver{Connection: conn, client: apiClient}
 }
 
 // GetHealth just checks if everything, including Redis is healthy

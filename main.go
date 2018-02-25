@@ -18,7 +18,6 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"golang.org/x/net/context"
 
-	"github.com/dhrp/moulin/certificates"
 	// "github.com/dhrp/moulin/kafkaproducer"
 	pb "github.com/dhrp/moulin/protobuf"
 	"github.com/dhrp/moulin/rouge"
@@ -26,7 +25,7 @@ import (
 
 const (
 	port     = 8042
-	hostname = "localhost"
+	hostname = ""
 )
 
 // join the two constants for convenience
@@ -36,12 +35,13 @@ type server struct {
 	rouge *rouge.Client
 }
 
-func (s *server) makeGRPCServer(certPool *x509.CertPool) *grpc.Server {
-	opts := []grpc.ServerOption{
-		grpc.Creds(credentials.NewClientTLSFromCert(certPool, fmt.Sprintf("%v:%d", hostname, port)))}
+func (s *server) makeGRPCServer() *grpc.Server {
+	// opts := []grpc.ServerOption{
+	// 	grpc.Creds(credentials.NewClientTLSFromCert(certPool, fmt.Sprintf("%v:%d", hostname, port)))
+	// }
 
 	//setup grpc server
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer := grpc.NewServer()
 	pb.RegisterAPIServer(grpcServer, s)
 	// Register reflection service on gRPC server.
 	reflection.Register(grpcServer)
@@ -92,8 +92,78 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 
 // createGlobalServer initializes rouge, the GRPC server and the HTTP mux,
 // it returns a fully loaded http server
-func createGlobalServer() *http.Server {
+// func createGlobalServer() *http.Server {
+//
+// 	rougeClient := &rouge.Client{Host: "localhost:6379"}
+// 	rougeClient.Init()
+// 	// kfk := &kafkaproducer.KFK{Broker: "localhost:9092"}
+// 	// kfk.Init()
+//
+// 	server := &server{rouge: rougeClient}
+//
+// 	keyPair, certPool := certificates.GetCert()
+//
+// 	grpcServer := server.makeGRPCServer(certPool)
+// 	restMux, err := getRestMux(certPool)
+// 	if err != nil {
+// 		log.Panic(err)
+// 	}
+//
+// 	// register root Http multiplexer (mux)
+// 	mux := http.NewServeMux()
+//
+// 	// we can add any non-grpc endpoints here.
+// 	mux.HandleFunc("/foobar/", simpleHTTPHello)
+// 	mux.HandleFunc("/v1/task_list/batch/", server.createTaskListBatch)
+// 	// router.POST("/v1/task_list/batch/", createTaskListBatch)
+//
+// 	// register the gateway mux onto the root path.
+// 	mux.Handle("/", restMux)
+//
+// 	// the grpcHandlerFunc takes an grpc server and a http muxer and will
+// 	// route the request to the right place at runtime.
+// 	mergeHandler := grpcHandlerFunc(grpcServer, mux)
+//
+// 	// configure TLS for our server. TLS is REQUIRED to make this setup work.
+// 	// check https://golang.org/src/net/http/server.go?s=69823:69872#L2666
+// 	srv := &http.Server{
+// 		Addr:    serveAddress,
+// 		Handler: mergeHandler,
+// 		TLSConfig: &tls.Config{
+// 			Certificates: []tls.Certificate{*keyPair},
+// 			NextProtos:   []string{"h2"},
+// 		},
+// 	}
+// 	return srv
+// }
 
+func main() {
+
+	// var srv *http.Server = createGlobalServer()
+	//
+	// // start listening on the socket
+	// // Note that if you listen on localhost:<port> you'll not be able to accept
+	// // connections over the network. Change it to ":port"  if you want it.
+	// conn, err := net.Listen("tcp", serveAddress)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	//
+	// // start the server
+	// fmt.Printf("starting GRPC and REST on: %v\n", serveAddress)
+	// err = srv.Serve(tls.NewListener(conn, srv.TLSConfig))
+	// if err != nil {
+	// 	log.Fatalf("failed to serve: %v", err)
+	// }
+
+	lis, err := net.Listen("tcp", serveAddress)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	// s := grpc.NewServer()
+	// pb.RegisterAPIServer(s, &server{})
+	// // Register reflection service on gRPC server.
+	// reflection.Register(s)
 	rougeClient := &rouge.Client{Host: "localhost:6379"}
 	rougeClient.Init()
 	// kfk := &kafkaproducer.KFK{Broker: "localhost:9092"}
@@ -101,58 +171,12 @@ func createGlobalServer() *http.Server {
 
 	server := &server{rouge: rougeClient}
 
-	keyPair, certPool := certificates.GetCert()
+	// keyPair, certPool := certificates.GetCert()
 
-	grpcServer := server.makeGRPCServer(certPool)
-	restMux, err := getRestMux(certPool)
-	if err != nil {
-		log.Panic(err)
-	}
+	grpcServer := server.makeGRPCServer()
 
-	// register root Http multiplexer (mux)
-	mux := http.NewServeMux()
-
-	// we can add any non-grpc endpoints here.
-	mux.HandleFunc("/foobar/", simpleHTTPHello)
-	mux.HandleFunc("/v1/task_list/batch/", server.createTaskListBatch)
-	// router.POST("/v1/task_list/batch/", createTaskListBatch)
-
-	// register the gateway mux onto the root path.
-	mux.Handle("/", restMux)
-
-	// the grpcHandlerFunc takes an grpc server and a http muxer and will
-	// route the request to the right place at runtime.
-	mergeHandler := grpcHandlerFunc(grpcServer, mux)
-
-	// configure TLS for our server. TLS is REQUIRED to make this setup work.
-	// check https://golang.org/src/net/http/server.go?s=69823:69872#L2666
-	srv := &http.Server{
-		Addr:    serveAddress,
-		Handler: mergeHandler,
-		TLSConfig: &tls.Config{
-			Certificates: []tls.Certificate{*keyPair},
-			NextProtos:   []string{"h2"},
-		},
-	}
-	return srv
-}
-
-func main() {
-
-	var srv *http.Server = createGlobalServer()
-
-	// start listening on the socket
-	// Note that if you listen on localhost:<port> you'll not be able to accept
-	// connections over the network. Change it to ":port"  if you want it.
-	conn, err := net.Listen("tcp", serveAddress)
-	if err != nil {
-		panic(err)
-	}
-
-	// start the server
-	fmt.Printf("starting GRPC and REST on: %v\n", serveAddress)
-	err = srv.Serve(tls.NewListener(conn, srv.TLSConfig))
-	if err != nil {
+	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+
 }

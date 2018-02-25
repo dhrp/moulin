@@ -1,6 +1,7 @@
 package rouge
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -162,15 +163,56 @@ func (c *Client) rpop(key string) (string, error) {
 	return resp.Str()
 }
 
-func (c *Client) brpop(key string) string {
+//
+// func reportDone(ctx context.Context, doneChan) {
+// 	<-ctx.Done()
+// 	fmt.Println("Context done!!")
+// }
+
+func foobar(key string, conn *redis.Client, msgChan chan []string) {
+
+	val, _ := conn.Cmd("BRPOP", key, 0).List()
+	log.Println("Still returning it!!")
+	msgChan <- val
+	log.Println("Post return!")
+}
+
+func (c *Client) brpop(ctx context.Context, key string) string {
+
+	// go reportDone(ctx)
+
+	// go func() {
+	// 	<-ctx.Done()
+	// 	fmt.Println("Context in brpop done!!")
+	// 	return
+	// }()
+	conn, _ := c.clientpool.Get()
+
+	msgChan := make(chan []string)
+
+	go foobar(key, conn, msgChan)
 
 	log.Println("Doing: BRPOP " + key)
-	val, err := c.clientpool.Cmd("BRPOP", key, 0).List()
-	if err != nil {
-		log.Panic(err)
+
+	select {
+	case <-ctx.Done():
+		fmt.Println("Context in brpop done!!")
+		// close(msgChan)
+		conn.Close()
+		c.clientpool.Put(conn)
+		return ""
+	case val := <-msgChan:
+		fmt.Println("Message loaded, returning")
+		msg := val[1] // [0] is the name of the queue / list
+		c.clientpool.Put(conn)
+		return msg
 	}
-	msg := val[1] // [0] is the name of the queue / list
-	return msg
+
+	// val, err := c.clientpool.Cmd("BRPOP", key, 0).List()
+	// Do other stuff
+
+	// log.Println("still returning message")
+
 }
 
 func (c *Client) brpoplpush(from string, to string) (string, error) {
