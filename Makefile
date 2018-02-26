@@ -9,7 +9,7 @@ BUILD=`git rev-parse HEAD`
 
 
 build:
-	go build -o ${BINARY} *.go
+	go build -o ${BINARY} server/*.go
 
 run:
 	./moulin

@@ -4,9 +4,8 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
 	"github.com/dhrp/moulin/rouge"
+	"github.com/stretchr/testify/suite"
 )
 
 type MainTestSuite struct {
@@ -18,8 +17,11 @@ type MainTestSuite struct {
 // and creating a server instance
 func (suite *MainTestSuite) SetupSuite() {
 	// initialize the rouge client (on localhost)
-	rougeClient := &rouge.Client{Host: "localhost:6379"}
-	rougeClient.Init()
+	// rougeClient := &rouge.Client{Host: "localhost:6379"}
+	// rougeClient.Init()
+
+	rougeClient, err := rouge.NewRougeClient()
+	suite.Nil(err)
 
 	// initialize the server, with our rougeClient
 	suite.server = &server{rouge: rougeClient}

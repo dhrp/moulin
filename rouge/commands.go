@@ -381,11 +381,11 @@ func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (
 
 	if removed, _ = lst[0].Int(); removed == 0 {
 		log.Printf("Item %v was not removed from source set!", member)
-		return false, errors.New(fmt.Sprintf("item %v was not removed from source set", member))
+		return false, fmt.Errorf("item %v was not removed from source set", member)
 	}
 	if added, _ = lst[1].Int(); added == 0 {
 		log.Printf("Item %v already existed in target set!", member)
-		return false, errors.New(fmt.Sprintf("item %v already existed in target set", member))
+		return false, fmt.Errorf("item %v already existed in target set", member)
 	}
 
 	return true, nil

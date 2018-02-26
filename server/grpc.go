@@ -13,10 +13,31 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/reflection"
 
 	pb "github.com/dhrp/moulin/protobuf"
 	"github.com/dhrp/moulin/rouge"
 )
+
+type server struct {
+	rouge *rouge.Client
+}
+
+func newGRPCServer(rougeClient *rouge.Client) *grpc.Server {
+
+	// Initialize the API Server
+	s := &server{rouge: rougeClient}
+
+	// Setup grpc server
+	grpcServer := grpc.NewServer()
+
+	// Register reflection service on gRPC server.
+	pb.RegisterAPIServer(grpcServer, s)
+
+	// Register reflection service on gRPC server.
+	reflection.Register(grpcServer)
+	return grpcServer
+}
 
 func (s *server) Healthz(ctx context.Context, in *empty.Empty) (*pb.StatusMessage, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -45,10 +66,6 @@ func (s *server) PushTask(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 		if _, ok = md["authorization"]; ok {
 			authorization = md["authorization"][0]
 		}
-
-		// if "authorization" {
-		// 	var authorization string = md["authorization"][0]
-		// }
 
 		fmt.Println("authorization: " + authorization)
 	} else {
@@ -83,32 +100,6 @@ func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task,
 	}
 	return &pb.Task{TaskID: taskMessage.ID, Body: taskMessage.Body}, nil
 
-	// queueID := in.QueueID
-	// taskMessage, err := s.rouge.Load(queueID, 300)
-	// if err != nil {
-	// 	log.Println("[grpc.go] error in loading message")
-	// 	return &pb.Task{}, err
-	// }
-	// log.Printf("DEBUG (grpc.go): received %v", taskMessage)
-	//
-	// task := &pb.Task{
-	// 	TaskID: taskMessage.ID,
-	// 	Body:   taskMessage.Body,
-	// }
-	//
-	// log.Printf("DEBUG (grpc.go): sending %v", task)
-	// // if taskMessage == rouge.TaskMessage{} {
-	// // 	log.Panic("Message empty!")
-	// // }
-	// // if task.Body == "" {
-	// // 	log.Panic("I'm returning a task with empty body.")
-	// // }
-	// if task.TaskID == "" {
-	// 	log.Panic("I'm returning a task with not taskID.")
-	// }
-	//
-	// log.Printf("really sending now..")
-	// return task, nil
 }
 
 // LoadTask returns a task from the redis queue

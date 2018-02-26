@@ -15,7 +15,7 @@ func (suite *MainTestSuite) TestUploadTaskBatch() {
 
 	suite.NotNil(suite.server.rouge, "rouge not initialized")
 
-	filename := "./test/testtextfile.txt"
+	filename := "../test/testtextfile.txt"
 	targetURL := "http://testserver.com/v1/task_list/batch/"
 
 	bodyBuf := &bytes.Buffer{}

@@ -17,38 +17,42 @@ import (
 
 // Client Basic client class to group Redis functions
 type Client struct {
-	Host       string
 	clientpool *pool.Pool
 }
 
-// Init Initializes the Rouge.Client, and saves it to the client struct
-func (red *Client) Init() error {
+func NewRougeClient() (*Client, error) {
+	redisHost := os.Getenv("REDIS_ADDRESS")
+	if redisHost == "" {
+		redisHost = "localhost:6379"
+	}
 
-	// df := func(network, addr string) (*redis.Client, error) {
-	// 	client, err := redis.Dial(network, addr)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	// TODO: Review if we need a password
-	// 	// set password with CONFIG SET requirepass "nevermind"
-	// 	// if err = client.Cmd("AUTH", "nevermind").Err; err != nil {
-	// 	// 	client.Close()
-	// 	// 	return nil, err
-	// 	// }
-	// 	return client, nil
-	// }
-
-	// pool, err := pool.NewCustom("tcp", red.Host, 10, df)
-	pool, err := pool.New("tcp", red.Host, 10)
+	pool, err := pool.New("tcp", redisHost, 10)
 	if err != nil {
-		return errors.Wrap(err, "init new connection to redis failed")
+		return nil, errors.Wrap(err, "init new connection to redis failed")
 	}
 
 	log.Println("redis client connected successfully with radix driver")
-	red.clientpool = pool
+	// red.clientpool = pool
 
-	return nil
+	return &Client{clientpool: pool}, nil
+
 }
+
+//
+// // Init Initializes the Rouge.Client, and saves it to the client struct
+// func (red *Client) Init() error {
+//
+// 	// pool, err := pool.NewCustom("tcp", red.Host, 10, df)
+// 	pool, err := pool.New("tcp", red.Host, 10)
+// 	if err != nil {
+// 		return errors.Wrap(err, "init new connection to redis failed")
+// 	}
+//
+// 	log.Println("redis client connected successfully with radix driver")
+// 	red.clientpool = pool
+//
+// 	return nil
+// }
 
 // Info just returns some information about the redis server. We also use it as
 // a health check
@@ -114,10 +118,8 @@ func (red *Client) Load(ctx context.Context, queueID string, expirationSec int) 
 			}
 			if errIn.Error() == "Nothing found at key" {
 				log.Println(errIn)
-				return TaskMessage{}, errIn
-			} else {
-				return TaskMessage{}, errIn
 			}
+			return TaskMessage{}, errIn
 		}
 
 		// try if there is a task on the received queue to pick up this
@@ -174,12 +176,10 @@ func (red *Client) Load(ctx context.Context, queueID string, expirationSec int) 
 				"will try to pop a new one from incoming queue")
 			continue
 		}
-		taskMessage.FromString(setmsg)
-
-		if taskMessage.Body == "" {
-			log.Printf("Error: msg was %s", setmsg)
-			log.Panic("Body is empty!")
+		if setmsg == "" {
+			log.Panic("Error: msg was empy")
 		}
+		taskMessage.FromString(setmsg)
 
 		log.Println("LOAD END:  Returning new member from the incoming queue")
 		log.Println("**********")

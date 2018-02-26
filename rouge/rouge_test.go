@@ -7,27 +7,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/suite"
 )
 
 type RedClientTestSuite struct {
 	suite.Suite
-	red           Client
+	red           *Client
 	sampleMsgBody string
 }
 
 func (suite *RedClientTestSuite) SetupSuite() {
 	suite.sampleMsgBody = "http://www.peskens.nl"
 
-	suite.red = Client{Host: "localhost:6379"}
-	err := suite.red.Init()
-	suite.Nil(err, "failed to init Redis")
-	if err != nil {
-		err = errors.Wrap(err, "failed to setup suite")
-		log.Fatal(err)
-	}
+	client, err := NewRougeClient()
+	suite.Nil(err)
+
+	suite.red = client
 }
 
 // GenerateMessage generate a json message for piping through the system.
