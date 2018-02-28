@@ -28,15 +28,17 @@ RUN dep ensure -vendor-only
 COPY . /go/src/github.com/dhrp/moulin/
 
 RUN make -C protobuf
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /go/bin/moulin *.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o moulin server/*.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o moulin-cli cli/*.go
 
 
-# FROM alpine:latest
-# RUN apk --no-cache add ca-certificates
-# WORKDIR /go/bin/
-# COPY --from=0 /go/bin/moulin /go/bin/moulin
-# COPY --from=0 /go/src/github.com/dhrp/moulin/certificates/* /go/bin/certificates/
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /
+COPY --from=0 /go/src/github.com/dhrp/moulin/moulin /usr/local/bin/moulin
+COPY --from=0 /go/src/github.com/dhrp/moulin/moulin-cli /usr/local/bin/moulin-cli
+
 
 ENV REDIS_HOST="localhost"
 EXPOSE 8042
-ENTRYPOINT ["/go/bin/moulin"]
+CMD ["moulin"]

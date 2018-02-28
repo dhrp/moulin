@@ -10,3 +10,6 @@ moulin
 **/.DS_Store
 clientcmd
 vendor/
+
+cli/cli
+moulin-cli

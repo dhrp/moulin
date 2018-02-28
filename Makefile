@@ -1,4 +1,5 @@
 BINARY=moulin
+CLI_BINARY=moulin-cli
 
 VERSION=1.0.0
 BUILD=`git rev-parse HEAD`
@@ -10,6 +11,9 @@ BUILD=`git rev-parse HEAD`
 
 build:
 	go build -o ${BINARY} server/*.go
+
+cli:
+	go build -o ${CLI_BINARY} cli/*.go
 
 run:
 	./moulin
@@ -40,4 +44,4 @@ push:
 clean:
 	if [ -f ${BINARY} ]; then rm ${BINARY}; fi
 
-.PHONY: build run test install clean image push
+.PHONY: build run test install clean image push cli

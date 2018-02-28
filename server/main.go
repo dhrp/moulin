@@ -20,7 +20,8 @@ func main() {
 
 	rougeClient, err := rouge.NewRougeClient()
 	if err != nil {
-		log.Panic(err.Error())
+		log.Fatalln(err.Error())
+		// os.Exit(1)
 	}
 
 	grpcServer := newGRPCServer(rougeClient)
@@ -30,6 +31,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
+	log.Printf("Starting server on %s\n", serveAddress)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
