@@ -5,7 +5,8 @@ import (
 	"log"
 	"net"
 
-	"github.com/dhrp/moulin/rouge"
+	"github.com/dhrp/moulin/pkg/rouge"
+	s "github.com/dhrp/moulin/pkg/server"
 )
 
 const (
@@ -21,10 +22,9 @@ func main() {
 	rougeClient, err := rouge.NewRougeClient()
 	if err != nil {
 		log.Fatalln(err.Error())
-		// os.Exit(1)
 	}
 
-	grpcServer := newGRPCServer(rougeClient)
+	grpcServer := s.NewGRPCServer(rougeClient)
 
 	lis, err := net.Listen("tcp", serveAddress)
 	if err != nil {

@@ -19,8 +19,7 @@ run:
 	./moulin
 
 test:
-	go test github.com/dhrp/moulin/rouge
-	go test github.com/dhrp/moulin
+	go test ./...
 
 test-client: build
 	{ ./moulin & }; \
@@ -33,7 +32,7 @@ test-client: build
 tests: test test-client
 
 install:
-	go install
+	go install ./...
 
 image:
 	docker build -t dhrp/moulin .

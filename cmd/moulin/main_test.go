@@ -4,9 +4,13 @@ import (
 	"log"
 	"testing"
 
-	"github.com/dhrp/moulin/rouge"
+	"github.com/dhrp/moulin/pkg/rouge"
 	"github.com/stretchr/testify/suite"
 )
+
+type server struct {
+	rouge *rouge.Client
+}
 
 type MainTestSuite struct {
 	suite.Suite

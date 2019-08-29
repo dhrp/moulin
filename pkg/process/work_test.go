@@ -3,7 +3,8 @@ package process
 import (
 	"log"
 
-	"github.com/dhrp/moulin/client"
+	"github.com/dhrp/moulin/pkg/client"
+	pb "github.com/dhrp/moulin/protobuf"
 )
 
 func (suite *MainTestSuite) TestWork() {
@@ -13,6 +14,11 @@ func (suite *MainTestSuite) TestWork() {
 
 	grpcDriver := client.NewGRPCDriver()
 	defer grpcDriver.Connection.Close()
+
+	task := new(pb.Task)
+	task.QueueID = "q1"
+	task.Body = "echo this is a test"
+	grpcDriver.PushTask(task)
 
 	result, err = Work(grpcDriver, "q1", "once")
 

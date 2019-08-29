@@ -1,4 +1,4 @@
-package main
+package server
 
 // Here we define all GRPC handlers
 
@@ -15,15 +15,15 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/dhrp/moulin/pkg/rouge"
 	pb "github.com/dhrp/moulin/protobuf"
-	"github.com/dhrp/moulin/rouge"
 )
 
 type server struct {
 	rouge *rouge.Client
 }
 
-func newGRPCServer(rougeClient *rouge.Client) *grpc.Server {
+func NewGRPCServer(rougeClient *rouge.Client) *grpc.Server {
 
 	// Initialize the API Server
 	s := &server{rouge: rougeClient}

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	pb "github.com/dhrp/moulin/protobuf"
-	"github.com/dhrp/moulin/rouge"
+	"github.com/dhrp/moulin/pkg/rouge"
 )
 
 type MainTestSuite struct {
@@ -27,15 +27,10 @@ func (suite *MainTestSuite) SetupSuite() {
 	grpcDriver := NewGRPCDriver()
 	suite.grpcDriver = grpcDriver
 
-	// initialize the rouge client (on localhost)
-	rougeClient := &rouge.Client{Host: "localhost:6379"}
-	rougeClient.Init()
-	suite.rouge = rougeClient
+	rougeClient, err := rouge.NewRougeClient()
+	suite.NoError(err, "no error")
 
-	// initialize the server, with our rougeClient
-	// suite.rouge = &server{rouge: rougeClient}
-	// suite.rouge = &rouge.Client{Host: "localhost:6379"}
-	// _ = suite.rouge.Init()
+	suite.rouge = rougeClient
 }
 
 func (suite *MainTestSuite) TestGetHealthz() {
