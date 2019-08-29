@@ -20,7 +20,7 @@
         "operationId": "Healthz",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APIStatusMessage"
             }
@@ -36,7 +36,7 @@
         "operationId": "PushTask",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APIStatusMessage"
             }
@@ -45,6 +45,7 @@
         "parameters": [
           {
             "name": "queueID",
+            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";",
             "in": "path",
             "required": true,
             "type": "string"
@@ -68,7 +69,7 @@
         "operationId": "Progress",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APIQueueProgress"
             }
@@ -112,7 +113,7 @@
         "operationId": "Peek",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APITaskList"
             }
@@ -156,7 +157,7 @@
         "operationId": "Complete",
         "responses": {
           "200": {
-            "description": "",
+            "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APIStatusMessage"
             }
@@ -165,6 +166,7 @@
         "parameters": [
           {
             "name": "queueID",
+            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";",
             "in": "path",
             "required": true,
             "type": "string"

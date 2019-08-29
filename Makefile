@@ -19,7 +19,7 @@ run:
 	./moulin
 
 test:
-	go test ./...
+	go test ./... -count=1
 
 test-client: build
 	{ ./moulin & }; \

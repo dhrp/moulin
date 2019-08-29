@@ -3,8 +3,8 @@ package command
 import (
 	"fmt"
 
-	"github.com/dhrp/moulin/pkg/client"
-	pb "github.com/dhrp/moulin/protobuf"
+	"github.com/dhrp/moulin/client"
+	pb "github.com/dhrp/moulin/pkg/protobuf"
 	"github.com/mitchellh/cli"
 )
 

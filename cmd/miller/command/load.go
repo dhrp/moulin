@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dhrp/moulin/pkg/client"
+	"github.com/dhrp/moulin/client"
 	"github.com/mitchellh/cli"
 )
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/suite"
 
-	pb "github.com/dhrp/moulin/protobuf"
+	pb "github.com/dhrp/moulin/pkg/protobuf"
 	"github.com/dhrp/moulin/pkg/rouge"
 )
 
