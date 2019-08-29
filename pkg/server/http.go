@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"fmt"
@@ -31,7 +31,7 @@ func (s *server) createTaskListBatch(w http.ResponseWriter, r *http.Request) {
 	// _, fileName := filepath.Split(handler.Filename)
 	fileName := ksuid.New().String()
 
-	filePath := "../uploads/" + fileName
+	filePath := "../../uploads/" + fileName
 	log.Printf("%v", handler.Header)
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {

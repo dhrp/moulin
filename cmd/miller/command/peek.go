@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/dhrp/moulin/client"
+	"github.com/dhrp/moulin/pkg/client"
 	"github.com/mitchellh/cli"
 )
 
@@ -27,7 +27,7 @@ func (c *Peek) Run(args []string) int {
 		fmt.Println("received too many arguments")
 		return -1
 	} else if len(args) < 2 {
-		fmt.Println("received too few arguments")
+		fmt.Println(c.Synopsis())
 		return -1
 	} else if len(args) == 3 {
 		limit, err = strconv.ParseInt(args[2], 10, 32)
@@ -61,10 +61,19 @@ func (c *Peek) Run(args []string) int {
 
 // Help (LoadCommand) shows help
 func (c *Peek) Help() string {
-	return "Peek into a queue, show the next n items"
+	return `
+Usage: miller peek QUEUE [DEPTH]
+
+Peek into a queue, show the next n items`
 }
 
 // Synopsis is the short description
 func (c *Peek) Synopsis() string {
-	return "Get a peek into a queue"
+	return `
+"miller peek" requires at least 2 arguments.
+See 'miller peek --help'.
+
+Usage: miller peek QUEUE [DEPTH]
+
+Peek into a queue, show the next n items`
 }

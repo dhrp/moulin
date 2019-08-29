@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dhrp/moulin/cli/command"
+	"github.com/dhrp/moulin/cmd/miller/command"
 	"github.com/mitchellh/cli"
 )
 

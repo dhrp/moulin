@@ -310,7 +310,7 @@ func (suite *RedClientTestSuite) TestAddTasksFromFile() {
 	log.Println("*******************")
 	log.Println("TEST ADD FROM FILE")
 	queueID := "test.queue"
-	filePath := "../test/testtextfile.txt"
+	filePath := "../../test/testtextfile.txt"
 
 	queueLength, count, err := suite.red.AddTasksFromFile(queueID, filePath)
 	suite.Nil(err, "AddTasksFromFile gave an error")

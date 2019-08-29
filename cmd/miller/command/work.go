@@ -3,8 +3,8 @@ package command
 import (
 	"fmt"
 
-	"github.com/dhrp/moulin/cli/process"
-	"github.com/dhrp/moulin/client"
+	"github.com/dhrp/moulin/pkg/process"
+	"github.com/dhrp/moulin/pkg/client"
 	"github.com/mitchellh/cli"
 )
 
@@ -50,10 +50,17 @@ func (w *Work) Run(args []string) int {
 
 // Help (LoadCommand) shows help
 func (w *Work) Help() string {
-	return "Work is for loading, executing, heartbeating and completing tasks from a queue"
+		return `
+Usage: miller work QUEUE [once|until-finished|forever]
+
+Work off items from a queue, execute each item as command on the shell`
 }
 
 // Synopsis is the short description
 func (w *Work) Synopsis() string {
-	return "Work off items from queue"
+		return `
+Usage: miller work QUEUE [once|until-finished|forever]
+
+Work off items from a queue, execute each item as command on the shell`
+
 }
