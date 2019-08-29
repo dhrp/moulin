@@ -3,8 +3,8 @@ package process
 import (
 	"log"
 
-	"github.com/dhrp/moulin/pkg/client"
-	pb "github.com/dhrp/moulin/protobuf"
+	"github.com/dhrp/moulin/client"
+	pb "github.com/dhrp/moulin/pkg/protobuf"
 )
 
 func (suite *MainTestSuite) TestWork() {

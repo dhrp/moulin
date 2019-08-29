@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	pb "github.com/dhrp/moulin/protobuf"
+	pb "github.com/dhrp/moulin/pkg/protobuf"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"

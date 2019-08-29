@@ -11,7 +11,7 @@ import (
 
 	"github.com/mattn/go-shellwords"
 
-	pb "github.com/dhrp/moulin/protobuf"
+	pb "github.com/dhrp/moulin/pkg/protobuf"
 )
 
 const defaultFailedCode = 1

@@ -9,7 +9,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"golang.org/x/net/context"
 
-	pb "github.com/dhrp/moulin/protobuf"
+	pb "github.com/dhrp/moulin/pkg/protobuf"
 )
 
 func (suite *MainTestSuite) TestHealthz() {

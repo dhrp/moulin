@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/dhrp/moulin/pkg/rouge"
-	pb "github.com/dhrp/moulin/protobuf"
+	pb "github.com/dhrp/moulin/pkg/protobuf"
 )
 
 type server struct {
