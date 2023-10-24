@@ -227,7 +227,7 @@ func (c *Client) brpoplpush(from string, to string) (string, error) {
 
 func (c *Client) lpoprpush(from string, to string) (int, error) {
 
-	log.Printf("Puting member back onto the incoming queue")
+	log.Printf("Putting member back onto the incoming queue")
 	luaScript := `
 		local popped = redis.call('LPOP', KEYS[1]);
 		local result = redis.call('RPUSH', KEYS[2], popped);

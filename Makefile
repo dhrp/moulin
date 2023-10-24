@@ -8,12 +8,14 @@ BUILD=`git rev-parse HEAD`
 # Setup the -ldflags option for go build here, interpolate the variable values
 # LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
 
+IMAGE_TAG=v0.3.1
+
 
 build:
-	go build -o ${BINARY} server/*.go
+	go build -o ${BINARY} cmd/moulin/*.go
 
 cli:
-	go build -o ${CLI_BINARY} cli/*.go
+	go build -o ${CLI_BINARY} cmd/miller/*.go
 
 run:
 	./moulin
@@ -35,10 +37,22 @@ install:
 	go install ./...
 
 image:
-	docker build -t dhrp/moulin .
+	docker build -t dhrp/moulin:$(IMAGE_TAG) .
+
+publish:
+	docker buildx build --platform linux/amd64 -t dhrp/moulin:$(IMAGE_TAG) -t dhrp/moulin:latest --push .
+
+docker-run:
+	docker run --link redis:redis -e REDIS_ADDRESS=redis:6379 --name moulin -d dhrp/moulin:$(IMAGE_TAG)
+
+docker-run-cli:
+	docker run --link redis:redis -e MOULIN_SERVER=moulin:8042 dhrp/moulin:$(IMAGE_TAG)
+
+docker-debug-cli:
+	docker run -it --link moulin:moulin -e MOULIN_SERVER=moulin:8042 dhrp/moulin:$(IMAGE_TAG) bash
 
 push:
-	docker push dhrp/moulin
+	docker push dhrp/moulin:$(IMAGE_TAG)
 
 clean:
 	if [ -f ${BINARY} ]; then rm ${BINARY}; fi

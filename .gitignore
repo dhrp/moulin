@@ -12,4 +12,5 @@ clientcmd
 vendor/
 
 cli/cli
+moulin
 moulin-cli

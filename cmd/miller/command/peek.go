@@ -41,7 +41,7 @@ func (c *Peek) Run(args []string) int {
 
 	taskList, err := grpcDriver.Peek(queueID, phase, int32(limit))
 	if err != nil {
-		fmt.Println("an error occured")
+		fmt.Println("an error occured", err)
 		return -1
 	}
 
@@ -62,7 +62,7 @@ func (c *Peek) Run(args []string) int {
 // Help (LoadCommand) shows help
 func (c *Peek) Help() string {
 	return `
-Usage: miller peek QUEUE [DEPTH]
+Usage: miller peek QUEUE PHASE [DEPTH]
 
 Peek into a queue, show the next n items`
 }
@@ -73,7 +73,7 @@ func (c *Peek) Synopsis() string {
 "miller peek" requires at least 2 arguments.
 See 'miller peek --help'.
 
-Usage: miller peek QUEUE [DEPTH]
+Usage: miller peek QUEUE PHASE [DEPTH]
 
 Peek into a queue, show the next n items`
 }
