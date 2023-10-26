@@ -40,33 +40,33 @@ func (suite *MainTestSuite) TestGetHealthz() {
 	suite.Equal(pb.Status_SUCCESS, result.Status, "Didn't receive OK health")
 }
 
-//
-// func (suite *MainTestSuite) TestOneTaskEndToEnd() {
-// 	fmt.Println("*** TestLoadTask()")
-//
-// 	inputTask := &pb.Task{
-// 		QueueID: "clientTest",
-// 		// TaskID: taskID,  // we let the server create a taskID
-// 		Body: "Just Testing!",
-// 	}
-//
-// 	result := suite.grpcDriver.PushTask(inputTask)
-// 	suite.Equal(pb.Status_SUCCESS, result.Status, "result was not OK")
-//
-// 	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
-// 	returnedTask := suite.grpcDriver.LoadTask("clientTest")
-// 	suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu4x"), len(returnedTask.TaskID), "TaskID doesn't look valid")
-//
-// 	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
-// 	result = suite.grpcDriver.HeartBeat("clientTest", returnedTask.TaskID, 301)
-// 	suite.Equal(pb.Status_SUCCESS, result.Status)
-//
-// 	result = suite.grpcDriver.HeartBeat("clientTest", "doesnt-exist", 301)
-// 	suite.Equal(pb.Status_FAILURE, result.Status)
-//
-// 	result = suite.grpcDriver.Complete("clientTest", returnedTask.TaskID)
-// 	suite.Equal(pb.Status_SUCCESS, result.Status)
-// }
+func (suite *MainTestSuite) TestOneTaskEndToEnd() {
+	fmt.Println("*** TestLoadTask()")
+
+	inputTask := &pb.Task{
+		QueueID: "clientTest",
+		// TaskID: taskID,  // we let the server create a taskID
+		Body: "Just Testing!",
+	}
+
+	result := suite.grpcDriver.PushTask(inputTask)
+	suite.Equal(pb.Status_SUCCESS, result.Status, "result was not OK")
+
+	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
+	returnedTask, err := suite.grpcDriver.LoadTask("clientTest")
+	suite.Nil(err)
+	suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu4x"), len(returnedTask.TaskID), "TaskID doesn't look valid")
+
+	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
+	result = suite.grpcDriver.HeartBeat("clientTest", returnedTask.TaskID, 301)
+	suite.Equal(pb.Status_SUCCESS, result.Status)
+
+	result = suite.grpcDriver.HeartBeat("clientTest", "doesnt-exist", 301)
+	suite.Equal(pb.Status_FAILURE, result.Status)
+
+	result = suite.grpcDriver.Complete("clientTest", returnedTask.TaskID)
+	suite.Equal(pb.Status_SUCCESS, result.Status)
+}
 
 // TestTaskConnectFirst is a test to show a problem where, if LoadTask is
 // started before a task is on the queue, it will not return the first item

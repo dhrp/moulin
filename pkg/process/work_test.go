@@ -7,7 +7,7 @@ import (
 	pb "github.com/dhrp/moulin/pkg/protobuf"
 )
 
-func (suite *MainTestSuite) TestWork() {
+func (suite *ProcessTestSuite) TestWork() {
 	log.Println("*** testing Work")
 	var result int
 	var err error
@@ -17,10 +17,11 @@ func (suite *MainTestSuite) TestWork() {
 
 	task := new(pb.Task)
 	task.QueueID = "q1"
-	task.Body = "echo this is a test"
+	task.Body = `sh -c "echo this is a test && sleep 3 && echo done"`
 	grpcDriver.PushTask(task)
 
 	result, err = Work(grpcDriver, "q1", "once")
+	suite.Nil(err)
 
 	_, _ = result, err
 

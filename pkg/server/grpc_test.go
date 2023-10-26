@@ -12,13 +12,13 @@ import (
 	pb "github.com/dhrp/moulin/pkg/protobuf"
 )
 
-func (suite *MainTestSuite) TestHealthz() {
+func (suite *ServerTestSuite) TestHealthz() {
 	req := &empty.Empty{}
 	resp, _ := suite.server.Healthz(context.Background(), req)
 	suite.NotEmpty(resp, "didnt get a response")
 }
 
-func (suite *MainTestSuite) TestPushLoadAndCompleteTask() {
+func (suite *ServerTestSuite) TestPushLoadAndCompleteTask() {
 	log.Println("*** testing gRPC TestPushAndLoadTask")
 
 	// create and push the task

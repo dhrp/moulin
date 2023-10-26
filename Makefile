@@ -8,7 +8,7 @@ BUILD=`git rev-parse HEAD`
 # Setup the -ldflags option for go build here, interpolate the variable values
 # LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
 
-IMAGE_TAG=v0.3.1
+IMAGE_TAG=v0.4.1
 
 
 build:
@@ -40,7 +40,7 @@ image:
 	docker build -t dhrp/moulin:$(IMAGE_TAG) .
 
 publish:
-	docker buildx build --platform linux/amd64 -t dhrp/moulin:$(IMAGE_TAG) -t dhrp/moulin:latest --push .
+	docker buildx build --platform linux/amd64 -t dhrp/moulin:$(IMAGE_TAG) --push .
 
 docker-run:
 	docker run --link redis:redis -e REDIS_ADDRESS=redis:6379 --name moulin -d dhrp/moulin:$(IMAGE_TAG)

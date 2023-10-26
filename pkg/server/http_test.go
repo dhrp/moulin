@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-func (suite *MainTestSuite) TestUploadTaskBatch() {
+func (suite *ServerTestSuite) TestUploadTaskBatch() {
 	log.Println("*** testing TestUploadTaskBatch")
 
 	suite.NotNil(suite.server.rouge, "rouge not initialized")

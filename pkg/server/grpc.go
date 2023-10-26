@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/dhrp/moulin/pkg/rouge"
 	pb "github.com/dhrp/moulin/pkg/protobuf"
+	"github.com/dhrp/moulin/pkg/rouge"
 )
 
 type server struct {
@@ -42,7 +42,7 @@ func NewGRPCServer(rougeClient *rouge.Client) *grpc.Server {
 func (s *server) Healthz(ctx context.Context, in *empty.Empty) (*pb.StatusMessage, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if ok {
-		fmt.Println("read incoming context successfull:")
+		fmt.Println("read incoming context successful:")
 		fmt.Println(md)
 		fmt.Println(md["authentication"])
 	} else {

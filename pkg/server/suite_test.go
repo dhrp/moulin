@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type MainTestSuite struct {
+type ServerTestSuite struct {
 	suite.Suite
 	server *server
 }
 
 // SetupSuite takes care of starting a rouge client
 // and creating a server instance
-func (suite *MainTestSuite) SetupSuite() {
+func (suite *ServerTestSuite) SetupSuite() {
 	// initialize the rouge client (on localhost)
 	// rougeClient := &rouge.Client{Host: "localhost:6379"}
 	// rougeClient.Init()
@@ -35,12 +35,12 @@ func (suite *MainTestSuite) SetupSuite() {
 // 	suite.Equal(1, len(globalServer.TLSConfig.Certificates), "Server should have a TLS certificate set")
 // }
 
-func (suite *MainTestSuite) TearDownSuite() {
+func (suite *ServerTestSuite) TearDownSuite() {
 	log.Println("closing suite, This would be a good place to close and clean up things")
 }
 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
-func TestMainTestSuite(t *testing.T) {
-	suite.Run(t, new(MainTestSuite))
+func TestServerTestSuite(t *testing.T) {
+	suite.Run(t, new(ServerTestSuite))
 }

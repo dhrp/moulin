@@ -1,4 +1,4 @@
-module moulin
+module github.com/dhrp/moulin
 
 go 1.20
 

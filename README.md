@@ -27,10 +27,10 @@ Specify the REDIS_ADDRESS, to point to a Redis server (defaults to localhost)
 The client is also built into the docker image. You can run it with 
 
 ```
-docker run --entrypoint moulin-cli --link moulin -e MOULIN_SERVER=moulin:8042 dhrp/moulin work q1 forever
+docker run --entrypoint moulin-cli --link moulin -e MOULIN_SERVER=moulin:8042 dhrp/moulin work queue1 forever
 ```
 
-Here we tell use `moulin-cli` to listen to a queue 'q1' and execute each command that comes from the queue.
+Here we tell use `moulin-cli` to listen to a queue 'queue1' and execute each command that comes from the queue.
 
 
 ## Using Moulin

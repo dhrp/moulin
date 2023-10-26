@@ -123,7 +123,7 @@ func (g GRPCDriver) Complete(queueID, taskID string) *pb.StatusMessage {
 	return r
 }
 
-// Progress ges the status for a queue
+// Progress gets the status for a queue
 func (g GRPCDriver) Progress(queueID string) (progress *pb.QueueProgress, err error) {
 	// then load a message
 	progress, err = g.client.Progress(context.Background(), &pb.RequestMessage{QueueID: queueID})

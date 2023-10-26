@@ -85,7 +85,6 @@ func (suite *RedClientTestSuite) TestRPOP() {
 
 	msg, _ = suite.red.rpop("test.queue.doesntexist")
 	suite.Equal(msg, "", "what was pushed is not what was popped")
-
 }
 
 func (suite *RedClientTestSuite) TestLPOPRPUSH() {

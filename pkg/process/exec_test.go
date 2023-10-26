@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type MainTestSuite struct {
+type ProcessTestSuite struct {
 	suite.Suite
 }
 
@@ -42,6 +42,6 @@ type MainTestSuite struct {
 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
-func TestMainTestSuite(t *testing.T) {
-	suite.Run(t, new(MainTestSuite))
+func TestProcessTestSuite(t *testing.T) {
+	suite.Run(t, new(ProcessTestSuite))
 }
