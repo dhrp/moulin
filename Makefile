@@ -58,3 +58,8 @@ clean:
 	if [ -f ${BINARY} ]; then rm ${BINARY}; fi
 
 .PHONY: build run test install clean image push cli
+
+redis:
+	@echo "starting redis if not already running"
+	docker start redis || docker run -p 6379:6379 --name redis -d redis && sleep 4
+
