@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package API;
 
-option go_package = ".";
+option go_package = "./API";
 
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";

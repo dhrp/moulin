@@ -21,8 +21,10 @@ import (
 
 type server struct {
 	rouge *rouge.Client
+	pb.UnimplementedAPIServer
 }
 
+// NewGRPCServer returns a new GRPC server
 func NewGRPCServer(rougeClient *rouge.Client) *grpc.Server {
 
 	// Initialize the API Server
@@ -148,6 +150,23 @@ func (s *server) Complete(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 	}, nil
 }
 
+// Fail moves a task from the running queue to the failed set
+func (s *server) Fail(ctx context.Context, in *pb.Task) (*pb.StatusMessage, error) {
+
+	queueID := in.QueueID
+	taskID := in.TaskID
+
+	_, err := s.rouge.Fail(queueID, taskID)
+	if err != nil {
+		return &pb.StatusMessage{Status: pb.Status_FAILURE, Detail: err.Error()}, err
+	}
+
+	return &pb.StatusMessage{
+		Status: pb.Status_SUCCESS,
+		Detail: "sucessfully marked item as complete",
+	}, nil
+}
+
 // Progress returns a status struct about the requested queue
 func (s *server) Progress(ctx context.Context, in *pb.RequestMessage) (*pb.QueueProgress, error) {
 	queueInfo, err := s.rouge.Progress(in.QueueID)
@@ -155,6 +174,19 @@ func (s *server) Progress(ctx context.Context, in *pb.RequestMessage) (*pb.Queue
 		return nil, grpc.Errorf(codes.Unknown, "could not get progress")
 	}
 	return queueInfo.ToBuff(), nil
+}
+
+func (s *server) ListQueues(ctx context.Context, in *pb.RequestMessage) (*pb.QueueList, error) {
+	// return nil, and not implemented error
+	return nil, grpc.Errorf(codes.Unimplemented, "method ListQueues not implemented")
+
+	// queueList := &pb.QueueList{}
+	// queues, err := s.rouge.ListQueues()
+	// if err != nil {
+	// 	return nil, grpc.Errorf(codes.Unknown, "could not get progress")
+	// }
+	// queueList.Queues = queues
+	// return queueList, nil
 }
 
 // Peek returns a count and messageList

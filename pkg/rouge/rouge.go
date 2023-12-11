@@ -243,6 +243,30 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 	return ok, nil
 }
 
+// Fail marks the item as completed.
+func (red *Client) Fail(queueID string, taskID string) (bool, error) {
+
+	if red.clientpool == nil {
+		log.Fatal("Connection to Redis not initialized. Did you forget to initialize?")
+	}
+
+	log.Println("***************")
+	log.Println("FAIL START")
+
+	from := fmt.Sprintf("%s.running", queueID)
+	to := fmt.Sprintf("%s.failed", queueID)
+	member := taskID
+
+	ok, err := red.moveMemberFromSetToSet(from, to, member)
+	if err != nil {
+		return false, errors.Wrap(err, "couldn't fail the item")
+	}
+
+	log.Println("FAIL END")
+	log.Println("***************")
+	return ok, nil
+}
+
 // Progress gets the status of the current lists in the queue
 func (red *Client) Progress(queueID string) (QueueInfo, error) {
 	log.Println("***************")

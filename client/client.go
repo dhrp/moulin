@@ -148,3 +148,14 @@ func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskL
 	log.Printf("Incoming queue length: %d", taskList.TotalItems)
 	return taskList, nil
 }
+
+// ListQueues returns a list of Progress structs
+func (g GRPCDriver) ListQueues() (queues []*pb.QueueProgress, err error) {
+	// then load a message
+	// queues, err = g.client.ListQueues(context.Background(), &empty.Empty{})
+	// if err != nil {
+	// 	return queues, grpc.Errorf(codes.Unknown, "could not get progress")
+	// }
+	// return nil and an not implemented error
+	return nil, grpc.Errorf(codes.Unimplemented, "not implemented")
+}
