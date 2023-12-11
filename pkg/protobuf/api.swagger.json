@@ -4,9 +4,10 @@
     "title": "api.proto",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
+  "tags": [
+    {
+      "name": "API"
+    }
   ],
   "consumes": [
     "application/json"
@@ -17,12 +18,18 @@
   "paths": {
     "/healthz": {
       "get": {
-        "operationId": "Healthz",
+        "operationId": "API_Healthz",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APIStatusMessage"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -31,21 +38,265 @@
         ]
       }
     },
-    "/v1/queue/{queueID}": {
-      "post": {
-        "operationId": "PushTask",
+    "/v1/complete/{queueID}/{taskID}": {
+      "put": {
+        "operationId": "API_Complete",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APIStatusMessage"
             }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
           }
         },
         "parameters": [
           {
             "name": "queueID",
-            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";",
+            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";\n\nneeded to pass the queueID to push task to",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "description": "perhaps should be called argument(s)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "envs",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "expirationSec",
+            "description": "this is used to heartbeat",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/fail/{queueID}/{taskID}": {
+      "put": {
+        "operationId": "API_Fail",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/APIStatusMessage"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";\n\nneeded to pass the queueID to push task to",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "description": "perhaps should be called argument(s)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "envs",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "expirationSec",
+            "description": "this is used to heartbeat",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/heartbeat/{queueID}/{taskID}": {
+      "put": {
+        "operationId": "API_HeartBeat",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/APIStatusMessage"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";\n\nneeded to pass the queueID to push task to",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "taskID",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "description": "perhaps should be called argument(s)",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "envs",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi"
+          },
+          {
+            "name": "expirationSec",
+            "description": "this is used to heartbeat",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/queue": {
+      "get": {
+        "operationId": "API_ListQueues",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/APIQueueList"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "expirationSec",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "phase",
+            "description": "only valid for peek",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "description": "only valid for peek",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "tags": [
+          "API"
+        ]
+      }
+    },
+    "/v1/queue/{queueID}": {
+      "post": {
+        "operationId": "API_PushTask",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/APIStatusMessage"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "queueID",
+            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";\n\nneeded to pass the queueID to push task to",
             "in": "path",
             "required": true,
             "type": "string"
@@ -55,7 +306,28 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/APITask"
+              "type": "object",
+              "properties": {
+                "taskID": {
+                  "type": "string"
+                },
+                "body": {
+                  "type": "string",
+                  "title": "perhaps should be called argument(s)"
+                },
+                "envs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "expirationSec": {
+                  "type": "integer",
+                  "format": "int32",
+                  "title": "this is used to heartbeat"
+                }
+              },
+              "title": "Task is the definition of a task"
             }
           }
         ],
@@ -66,12 +338,18 @@
     },
     "/v1/queue/{queueID}/progress": {
       "get": {
-        "operationId": "Progress",
+        "operationId": "API_Progress",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APIQueueProgress"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -91,12 +369,14 @@
           },
           {
             "name": "phase",
+            "description": "only valid for peek",
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "limit",
+            "description": "only valid for peek",
             "in": "query",
             "required": false,
             "type": "integer",
@@ -110,12 +390,18 @@
     },
     "/v1/queue/{queueID}/{phase}/{limit}": {
       "get": {
-        "operationId": "Peek",
+        "operationId": "API_Peek",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "$ref": "#/definitions/APITaskList"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -128,12 +414,14 @@
           },
           {
             "name": "phase",
+            "description": "only valid for peek",
             "in": "path",
             "required": true,
             "type": "string"
           },
           {
             "name": "limit",
+            "description": "only valid for peek",
             "in": "path",
             "required": true,
             "type": "integer",
@@ -151,40 +439,25 @@
           "API"
         ]
       }
-    },
-    "/v1/queue/{queueID}/{taskID}": {
-      "put": {
-        "operationId": "Complete",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/APIStatusMessage"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "queueID",
-            "description": "reserved 1; // we took queueID out\nreserved \"queueID\";",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "taskID",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "API"
-        ]
-      }
     }
   },
   "definitions": {
+    "APIQueueList": {
+      "type": "object",
+      "properties": {
+        "totalItems": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "queues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/APIQueueProgress"
+          }
+        }
+      }
+    },
     "APIQueueProgress": {
       "type": "object",
       "properties": {
@@ -239,13 +512,15 @@
       "properties": {
         "queueID": {
           "type": "string",
+          "description": "needed to pass the queueID to push task to",
           "title": "reserved 1; // we took queueID out\nreserved \"queueID\";"
         },
         "taskID": {
           "type": "string"
         },
         "body": {
-          "type": "string"
+          "type": "string",
+          "title": "perhaps should be called argument(s)"
         },
         "envs": {
           "type": "array",
@@ -255,7 +530,8 @@
         },
         "expirationSec": {
           "type": "integer",
-          "format": "int32"
+          "format": "int32",
+          "title": "this is used to heartbeat"
         }
       },
       "title": "Task is the definition of a task"
@@ -270,10 +546,39 @@
         "tasks": {
           "type": "array",
           "items": {
+            "type": "object",
             "$ref": "#/definitions/APITask"
           }
         }
       }
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
     }
   }
 }

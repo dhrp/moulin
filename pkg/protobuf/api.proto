@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package API;
 
+option go_package = ".";
+
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
@@ -27,13 +29,19 @@ service API {
 
   rpc HeartBeat (Task) returns (StatusMessage) {
     option (google.api.http) = {
-      put: "/v1/queue/{queueID}/{taskID}"
+      put: "/v1/heartbeat/{queueID}/{taskID}"
     };
   }
 
   rpc Complete (Task) returns (StatusMessage) {
     option (google.api.http) = {
-      put: "/v1/queue/{queueID}/{taskID}"
+      put: "/v1/complete/{queueID}/{taskID}"
+    };
+  }
+  
+  rpc Fail (Task) returns (StatusMessage) {
+    option (google.api.http) = {
+      put: "/v1/fail/{queueID}/{taskID}"
     };
   }
 
@@ -49,6 +57,11 @@ service API {
     };
   }
 
+  rpc ListQueues (RequestMessage) returns (QueueList) {
+    option (google.api.http) = {
+      get: "/v1/queue"
+    };
+  }
 }
 
 enum Status {
@@ -96,4 +109,9 @@ message QueueProgress {
 message TaskList {
   int32 totalItems = 1;
   repeated Task tasks = 2;
+}
+
+message QueueList {
+  int32 totalItems = 1;
+  repeated QueueProgress queues = 2;
 }
