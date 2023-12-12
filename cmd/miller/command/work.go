@@ -38,7 +38,7 @@ func (w *Work) Run(args []string) int {
 		process.Work(grpcDriver, args[0], "once")
 		return 0
 	case "until-finished":
-		fmt.Println("not implemented yet ")
+		process.Work(grpcDriver, args[0], "until-finished")
 		return 1
 	case "forever":
 		process.Work(grpcDriver, args[0], "forever")

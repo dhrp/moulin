@@ -27,7 +27,7 @@ func Work(grpcDriver *client.GRPCDriver, queueID string, workType string) (resul
 		if err != nil {
 			log.Panic("failed loading task")
 		}
-		fmt.Printf("  received taskID %s from queue\n", task.TaskID)
+		fmt.Printf("received task %s from queue\n", task)
 
 		var isWorking = struct{ active bool }{active: true}
 		go RepeatHeartBeat(grpcDriver, queueID, task.TaskID, &isWorking)
@@ -35,21 +35,22 @@ func Work(grpcDriver *client.GRPCDriver, queueID string, workType string) (resul
 		// let the exec function do the hard work
 		result, err := Exec(task)
 		if err != nil {
-			fmt.Printf("  task failed with result %v!!", result)
-			// TODO: mark as failed
+			fmt.Printf("task failed with result %v!!", result)
 		}
 
 		isWorking.active = false
 
 		if result == 0 {
-			fmt.Printf("  Task completed with code %d. Marking as complete.\n", result)
+			fmt.Printf("Task completed with exit code %d.\n", result)
+			fmt.Printf("Marking task as completed: %s\n", task)
+			status := grpcDriver.Complete(queueID, task.TaskID)
+			fmt.Println(status.Detail)
 		} else {
-			fmt.Printf("  Task failed with code %d ?!? (still marking as complete for now)", result)
-			// TODO: mark as failed
+			fmt.Printf("Task failed with exit code %d.\n", result)
+			fmt.Printf("Marking task as failed: %s\n", task)
+			status := grpcDriver.Fail(queueID, task.TaskID)
+			fmt.Println(status.Detail)
 		}
-
-		status := grpcDriver.Complete(queueID, task.TaskID)
-		fmt.Println(status)
 
 		if exit == true {
 			return 0, nil

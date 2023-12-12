@@ -40,6 +40,7 @@ func (c *Progress) Run(args []string) int {
 	fmt.Printf("running:   %d\n", status.RunningCount)
 	fmt.Printf("expired:   %d\n", status.ExpiredCount)
 	fmt.Printf("completed: %d\n", status.CompletedCount)
+	fmt.Printf("failed:    %d\n", status.FailedCount)
 
 	return 0
 }

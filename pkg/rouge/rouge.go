@@ -327,16 +327,17 @@ func (red *Client) Peek(queueID, phase string, limit int) (int, []TaskMessage, e
 			return count, taskList, errors.Wrap(err, "couldn't lrange incoming list")
 		}
 	} else {
+		timestamp := int64(time.Now().Unix())
+		score := strconv.FormatInt(timestamp, 10)
 		if phase == "running" {
-			timestamp := int64(time.Now().Unix())
-			score := strconv.FormatInt(timestamp, 10)
 			count, _ = red.zcount(queueID+".running", score, "inf")
 			members, err = red.zrangebyscore(queueID+".running", score, "inf", limit)
 		} else if phase == "expired" {
-			timestamp := int64(time.Now().Unix())
-			score := strconv.FormatInt(timestamp, 10)
 			count, _ = red.zcount(queueID+".running", "-inf", score)
-			members, err = red.zrangebyscore(queueID+".running", "-inf", score, limit)
+			members, err = red.zrangebyscore(queueID+"."+phase, "-inf", score, limit)
+		} else if phase == "failed" || phase == "completed" {
+			count, _ = red.zcount(queueID+"."+phase, "-inf", "inf")
+			members, err = red.zrangebyscore(queueID+"."+phase, "-inf", "inf", limit)
 		} else {
 			return 0, nil, errors.New("phase not found")
 		}

@@ -61,8 +61,8 @@ func Exec(task *pb.Task) (result int, err error) {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	fmt.Printf("  command: %v; args: %v\n", command, args)
-	fmt.Print("> ")
+	fmt.Printf("running command: %v; args: %v\n", command, args)
+	fmt.Print("output >\n")
 	err = cmd.Run()
 	// https://stackoverflow.com/questions/10385551/get-exit-code-go
 	if err != nil {

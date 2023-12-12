@@ -1,3 +1,5 @@
+.PHONY: build run test install clean image push cli
+
 BINARY=moulin
 CLI_BINARY=moulin-cli
 
@@ -56,8 +58,6 @@ push:
 
 clean:
 	if [ -f ${BINARY} ]; then rm ${BINARY}; fi
-
-.PHONY: build run test install clean image push cli
 
 redis:
 	@echo "starting redis if not already running"

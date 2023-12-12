@@ -163,7 +163,7 @@ func (s *server) Fail(ctx context.Context, in *pb.Task) (*pb.StatusMessage, erro
 
 	return &pb.StatusMessage{
 		Status: pb.Status_SUCCESS,
-		Detail: "sucessfully marked item as complete",
+		Detail: "sucessfully marked item as failed",
 	}, nil
 }
 

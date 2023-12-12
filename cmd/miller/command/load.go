@@ -32,8 +32,7 @@ func (c *LoadCommand) Run(args []string) int {
 	if err != nil {
 		log.Panic("failed loading task")
 	}
-	fmt.Printf("received taskID %s from queue\n", task.TaskID)
-	fmt.Printf("%s\n", task.Body)
+	fmt.Printf("received task %s from queue\n", task)
 
 	return 0
 }

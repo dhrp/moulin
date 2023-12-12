@@ -86,7 +86,6 @@ func (g GRPCDriver) LoadTask(queueID string) (task *pb.Task, err error) {
 	if err != nil {
 		log.Fatalf("could not load task: %v", err)
 	}
-	log.Printf("DEBUG (client.go): received %v", t)
 	return t, nil
 }
 
@@ -107,9 +106,9 @@ func (g GRPCDriver) HeartBeat(queueID, taskID string, expirationSec int32) *pb.S
 	return r
 }
 
-// Complete updates the expiry of an item on the running set
+// Complete moves the task from the running set to the completed set
 func (g GRPCDriver) Complete(queueID, taskID string) *pb.StatusMessage {
-	// then load a message
+
 	task := &pb.Task{
 		QueueID: queueID,
 		TaskID:  taskID,
@@ -119,7 +118,21 @@ func (g GRPCDriver) Complete(queueID, taskID string) *pb.StatusMessage {
 	if err != nil {
 		log.Fatalf("could not complete task: %v", err)
 	}
-	log.Printf("Result: %s", r.Status)
+	return r
+}
+
+// Fail marks the task as failed by pushing it to the failed set
+func (g GRPCDriver) Fail(queueID, taskID string) *pb.StatusMessage {
+
+	task := &pb.Task{
+		QueueID: queueID,
+		TaskID:  taskID,
+	}
+
+	r, err := g.client.Fail(context.Background(), task)
+	if err != nil {
+		log.Fatalf("could not complete task: %v", err)
+	}
 	return r
 }
 

@@ -2,6 +2,7 @@ package rouge
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strconv"
 	"testing"
@@ -274,6 +275,22 @@ func (suite *RedClientTestSuite) TestCompletePhase() {
 	suite.Equal(true, OK, "didn't manage to move item from one set to other")
 }
 
+func (suite *RedClientTestSuite) TestFailPhase() {
+	log.Println("**************")
+	log.Println("FAIL phase")
+
+	queueID := "test.queue"
+	taskID := "123123123123"
+	set := fmt.Sprintf("%s.running", queueID)
+	score := "100"
+
+	suite.red.zadd(set, score, taskID)
+
+	OK, err := suite.red.Fail(queueID, taskID)
+	suite.Nil(err)
+	suite.Equal(true, OK, "didn't manage to move item from one set to other")
+}
+
 func (suite *RedClientTestSuite) TestRedEndToEnd() {
 
 	log.Println("*******************")
@@ -392,6 +409,8 @@ func (suite *RedClientTestSuite) TearDownTest() {
 	suite.red.del("test.queue.running")
 	suite.red.del("test.queue.received")
 	suite.red.del("test.queue.completed")
+	suite.red.del("test.queue.expired")
+	suite.red.del("test.queue.failed")
 	suite.red.del("nonexistent")
 }
 
