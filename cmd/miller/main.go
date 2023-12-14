@@ -8,6 +8,13 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+var (
+	// Version is set during build with ldflags
+	Version string
+	// Build is set during build with ldflags
+	Build string
+)
+
 func main() {
 
 	ui := &cli.BasicUi{
@@ -16,7 +23,7 @@ func main() {
 		ErrorWriter: os.Stderr,
 	}
 
-	c := cli.NewCLI("cliexample", "0.0.1")
+	c := cli.NewCLI("moulin-cli", Version)
 	c.Args = os.Args[1:]
 
 	c.Commands = map[string]cli.CommandFactory{
@@ -55,6 +62,22 @@ func main() {
 		},
 		"peek": func() (cli.Command, error) {
 			return &command.Peek{
+				UI: &cli.ColoredUi{
+					Ui:          ui,
+					OutputColor: cli.UiColorGreen,
+				},
+			}, nil
+		},
+		"list": func() (cli.Command, error) {
+			return &command.List{
+				UI: &cli.ColoredUi{
+					Ui:          ui,
+					OutputColor: cli.UiColorGreen,
+				},
+			}, nil
+		},
+		"version": func() (cli.Command, error) {
+			return &command.Version{
 				UI: &cli.ColoredUi{
 					Ui:          ui,
 					OutputColor: cli.UiColorGreen,

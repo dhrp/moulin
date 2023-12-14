@@ -129,7 +129,7 @@ func (s *server) HeartBeat(ctx context.Context, in *pb.Task) (*pb.StatusMessage,
 
 	return &pb.StatusMessage{
 		Status: pb.Status_SUCCESS,
-		Detail: fmt.Sprintf("Heartbeat successfull, task will now expire at: %v", expires),
+		Detail: fmt.Sprintf("Heartbeat successful, task will now expire at: %v", expires),
 	}, nil
 }
 
@@ -146,7 +146,7 @@ func (s *server) Complete(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 
 	return &pb.StatusMessage{
 		Status: pb.Status_SUCCESS,
-		Detail: "sucessfully marked item as complete",
+		Detail: "successfully marked item as complete",
 	}, nil
 }
 
@@ -163,7 +163,7 @@ func (s *server) Fail(ctx context.Context, in *pb.Task) (*pb.StatusMessage, erro
 
 	return &pb.StatusMessage{
 		Status: pb.Status_SUCCESS,
-		Detail: "sucessfully marked item as failed",
+		Detail: "successfully marked item as failed",
 	}, nil
 }
 
@@ -176,17 +176,21 @@ func (s *server) Progress(ctx context.Context, in *pb.RequestMessage) (*pb.Queue
 	return queueInfo.ToBuff(), nil
 }
 
-func (s *server) ListQueues(ctx context.Context, in *pb.RequestMessage) (*pb.QueueList, error) {
-	// return nil, and not implemented error
-	return nil, grpc.Errorf(codes.Unimplemented, "method ListQueues not implemented")
+func (s *server) ListQueues(ctx context.Context, in *empty.Empty) (*pb.QueueMap, error) {
 
-	// queueList := &pb.QueueList{}
-	// queues, err := s.rouge.ListQueues()
-	// if err != nil {
-	// 	return nil, grpc.Errorf(codes.Unknown, "could not get progress")
-	// }
-	// queueList.Queues = queues
-	// return queueList, nil
+	queueMap := &pb.QueueMap{Queues: make(map[string]*pb.QueueProgress)}
+	queues, err := s.rouge.ListQueues()
+
+	if err != nil {
+		return nil, grpc.Errorf(codes.Unknown, "could not get progress")
+	}
+
+	// for each queue in the map, create a &pb.QueueProgress
+	for queueName, queueInfo := range queues {
+		queueMap.Queues[queueName] = queueInfo.ToBuff()
+	}
+
+	return queueMap, nil
 }
 
 // Peek returns a count and messageList

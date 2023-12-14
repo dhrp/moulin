@@ -414,6 +414,11 @@ func (suite *RedClientTestSuite) TearDownTest() {
 	suite.red.del("nonexistent")
 }
 
+func (suite *RedClientTestSuite) TestListQueues() {
+	list, _ := suite.red.ListQueues()
+	log.Printf("list of queues: %v", list)
+}
+
 func (suite *RedClientTestSuite) TearDownSuite() {
 	// suite.red.flushdb()
 	log.Println("closing suite, cleaning up Redis")

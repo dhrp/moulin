@@ -163,12 +163,11 @@ func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskL
 }
 
 // ListQueues returns a list of Progress structs
-func (g GRPCDriver) ListQueues() (queues []*pb.QueueProgress, err error) {
-	// then load a message
-	// queues, err = g.client.ListQueues(context.Background(), &empty.Empty{})
-	// if err != nil {
-	// 	return queues, grpc.Errorf(codes.Unknown, "could not get progress")
-	// }
-	// return nil and an not implemented error
-	return nil, grpc.Errorf(codes.Unimplemented, "not implemented")
+func (g GRPCDriver) ListQueues() (queues map[string]*pb.QueueProgress, err error) {
+	queueMap, err := g.client.ListQueues(context.Background(), &empty.Empty{})
+	if err != nil {
+		return nil, grpc.Errorf(codes.Unknown, "could not list queues")
+	}
+
+	return queueMap.Queues, nil
 }

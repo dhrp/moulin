@@ -3,21 +3,24 @@
 BINARY=moulin
 CLI_BINARY=moulin-cli
 
-VERSION=1.0.0
-BUILD=`git rev-parse HEAD`
+VERSION=$(shell git describe --tags --always --dirty)
+DATE=$(shell date +%Y%m%d.%H%M)
 
 # ToDo: set versions stuffs in files
 # Setup the -ldflags option for go build here, interpolate the variable values
 # LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
 
-IMAGE_TAG=v0.4.1
-
+IMAGE_TAG=$(VERSION)
 
 build:
-	go build -o ${BINARY} cmd/moulin/*.go
+	go build -o ${BINARY} \
+	-ldflags "-X main.Version=${VERSION} -X main.Build=${DATE}" \
+	cmd/moulin/*.go
 
 cli:
-	go build -o ${CLI_BINARY} cmd/miller/*.go
+	go build -o ${CLI_BINARY} \
+	-ldflags "-X main.Version=${VERSION} -X main.Build=${DATE}" \
+	cmd/miller/*.go
 
 run:
 	./moulin
@@ -39,10 +42,10 @@ install:
 	go install ./...
 
 image:
-	docker build -t dhrp/moulin:$(IMAGE_TAG) .
+	docker build --platform linux/amd64 --build-arg APP_VERSION=$(VERSION) -t dhrp/moulin:$(IMAGE_TAG) .
 
 publish:
-	docker buildx build --platform linux/amd64 -t dhrp/moulin:$(IMAGE_TAG) --push .
+	docker buildx build --platform linux/amd64 --build-arg APP_VERSION=$(VERSION) -t dhrp/moulin:$(IMAGE_TAG) --push .
 
 docker-run:
 	docker run --link redis:redis -e REDIS_ADDRESS=redis:6379 --name moulin -d dhrp/moulin:$(IMAGE_TAG)

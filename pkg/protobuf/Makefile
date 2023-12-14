@@ -1,4 +1,4 @@
-all: protobuf gateway swagger generate
+all: protobuf gateway swagger generate move
 
 protobuf:
 	protoc -I=. \
@@ -27,6 +27,11 @@ swagger:
 generate:
 	go generate .
 
+move:
+	mv API/*.go .
+
+# Weirdly enough I don't manage to get them all to output to the same directory, 
+# but copyint them over to the protobuf directory works for now.
 
 
 clean:

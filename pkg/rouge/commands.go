@@ -354,6 +354,29 @@ func (c *Client) zrangebyscore(set string, from string, to string, limit int) (l
 	return resp.List()
 }
 
+func (c *Client) scanForLists() (lst []string, err error) {
+
+	cursor := "-"
+
+	// repeat until we get a cursor of 0 (which indicates the iteration is done)
+	for cursor != "0" {
+		if cursor == "-" {
+			cursor = "0"
+		}
+
+		resp := c.clientpool.Cmd("SCAN", cursor, "COUNT", "100", "TYPE", "list")
+		respArr, _ := resp.Array()
+		cursor, _ = respArr[0].Str()
+
+		// add the keys to the list
+		keys, _ := respArr[1].List()
+
+		lst = append(lst, keys...)
+	}
+
+	return lst, err
+}
+
 // Do an atomic from sorted list; to sorted list operation
 func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (bool, error) {
 

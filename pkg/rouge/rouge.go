@@ -307,6 +307,28 @@ func (red *Client) Progress(queueID string) (QueueInfo, error) {
 	return queueInfo, nil
 }
 
+// ListQueues is implemented in GRPC
+func (red *Client) ListQueues() (map[string]QueueInfo, error) {
+	log.Println("***************")
+	log.Println("LISTQUEUES START")
+
+	queueList, err := red.scanForLists()
+	queueDetailMap := make(map[string]QueueInfo)
+
+	for _, queue := range queueList {
+		queueInfo, err := red.Progress(queue)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get progress for queue")
+		}
+		queueDetailMap[queue] = queueInfo
+	}
+
+	log.Println("LISTQUEUES END")
+	log.Println("***************")
+
+	return queueDetailMap, err
+}
+
 // Peek gets a list of the most or least recent items from a given queue
 // and queue phase
 func (red *Client) Peek(queueID, phase string, limit int) (int, []TaskMessage, error) {
@@ -394,6 +416,8 @@ func (red *Client) ClearQueue(queueID string) (bool, error) {
 	red.del(queueID + ".running")
 	red.del(queueID + ".expired")
 	red.del(queueID + ".completed")
+	red.del(queueID + ".expired")
+	red.del(queueID + ".failed")
 	// ToDo: !! Clear the individual keys
 
 	log.Println("CLEARQUEUE END")

@@ -43,7 +43,7 @@ type APIClient interface {
 	Fail(ctx context.Context, in *Task, opts ...grpc.CallOption) (*StatusMessage, error)
 	Progress(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*QueueProgress, error)
 	Peek(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*TaskList, error)
-	ListQueues(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*QueueList, error)
+	ListQueues(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*QueueMap, error)
 }
 
 type aPIClient struct {
@@ -126,8 +126,8 @@ func (c *aPIClient) Peek(ctx context.Context, in *RequestMessage, opts ...grpc.C
 	return out, nil
 }
 
-func (c *aPIClient) ListQueues(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*QueueList, error) {
-	out := new(QueueList)
+func (c *aPIClient) ListQueues(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*QueueMap, error) {
+	out := new(QueueMap)
 	err := c.cc.Invoke(ctx, API_ListQueues_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -147,7 +147,7 @@ type APIServer interface {
 	Fail(context.Context, *Task) (*StatusMessage, error)
 	Progress(context.Context, *RequestMessage) (*QueueProgress, error)
 	Peek(context.Context, *RequestMessage) (*TaskList, error)
-	ListQueues(context.Context, *RequestMessage) (*QueueList, error)
+	ListQueues(context.Context, *emptypb.Empty) (*QueueMap, error)
 	mustEmbedUnimplementedAPIServer()
 }
 
@@ -179,7 +179,7 @@ func (UnimplementedAPIServer) Progress(context.Context, *RequestMessage) (*Queue
 func (UnimplementedAPIServer) Peek(context.Context, *RequestMessage) (*TaskList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Peek not implemented")
 }
-func (UnimplementedAPIServer) ListQueues(context.Context, *RequestMessage) (*QueueList, error) {
+func (UnimplementedAPIServer) ListQueues(context.Context, *emptypb.Empty) (*QueueMap, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListQueues not implemented")
 }
 func (UnimplementedAPIServer) mustEmbedUnimplementedAPIServer() {}
@@ -340,7 +340,7 @@ func _API_Peek_Handler(srv interface{}, ctx context.Context, dec func(interface{
 }
 
 func _API_ListQueues_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestMessage)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -352,7 +352,7 @@ func _API_ListQueues_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: API_ListQueues_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(APIServer).ListQueues(ctx, req.(*RequestMessage))
+		return srv.(APIServer).ListQueues(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }

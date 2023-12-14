@@ -23,10 +23,17 @@ RUN go mod download
 # install and build go app
 COPY . /go/src/github.com/dhrp/moulin/
 
-# RUN make -C protobuf
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o moulin cmd/moulin/main.go
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o moulin-cli cmd/miller/main.go
+ARG APP_VERSION
 
+# RUN make -C protobuf
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+	go build -o moulin \
+	-ldflags "-X main.version=${APP_VERSION}" \
+	cmd/moulin/main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+	go build -o moulin-cli \
+	-ldflags "-X main.version=${APP_VERSION}" \
+	cmd/miller/main.go
 
 FROM ubuntu:latest
 WORKDIR /
