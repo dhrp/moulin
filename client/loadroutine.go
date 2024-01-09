@@ -3,6 +3,8 @@ package client
 import (
 	"fmt"
 	"log"
+
+	"golang.org/x/net/context"
 )
 
 // LoadRoutine is not a test on its own.
@@ -20,7 +22,7 @@ func LoadRoutine(grpcDriver *GRPCDriver, number int, channel chan bool) {
 	connectionState = grpcDriver.Connection.GetState()
 	fmt.Printf("[goroutine %d] connection state: %v \n", number, connectionState)
 
-	returnedTask, err := grpcDriver.LoadTask("clientTest2")
+	returnedTask, err := grpcDriver.LoadTask(context.Background(), "clientTest2")
 	if err != nil {
 		log.Panic(err.Error())
 	}

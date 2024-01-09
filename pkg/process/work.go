@@ -1,31 +1,48 @@
 package process
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/dhrp/moulin/client"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+var loadTaskTimeOut = 30 * time.Second
 
 // Work manages getting, heartbeating, and completing or failing
 // items, in a loop
 func Work(grpcDriver *client.GRPCDriver, queueID string, workType string) (result int, err error) {
 
-	var exit bool
+	var exit bool // whether to stop after completion of a task.
+	ctx, cancel := context.WithCancel(context.Background())
+
 	if workType == "once" {
 		exit = true
 	} else if workType == "until-finished" {
 		exit = false
+		ctx, cancel = context.WithTimeout(context.Background(), loadTaskTimeOut)
 	} else if workType == "forever" {
 		exit = false
 	}
 
+	defer cancel()
+
 	// forever loop, until exit == true
 	for {
-		task, err := grpcDriver.LoadTask(queueID)
+		fmt.Printf("Loading a task from the queue.\n")
+		task, err := grpcDriver.LoadTask(ctx, queueID)
+		if status.Code(err) == codes.DeadlineExceeded {
+			fmt.Printf("LoadTask Timeout (%s) has exceeded. The queue is empty, stopping.\n", loadTaskTimeOut)
+			return 0, err
+		}
 		if err != nil {
-			log.Panic("failed loading task")
+			log.Printf("%s", status.Code(err))
+			log.Printf("failed loading task")
+			return 1, err
 		}
 		fmt.Printf("received task %s from queue\n", task)
 
@@ -71,4 +88,10 @@ func RepeatHeartBeat(grpcDriver *client.GRPCDriver, queueID string, taskID strin
 		grpcDriver.HeartBeat(queueID, taskID, 300)
 		fmt.Println("   heartbeat beat")
 	}
+}
+
+// LoadTimeOut is a simple timeout to wait for a new item on the queue or exit
+func LoadTimeOut(cancel func()) {
+	time.Sleep(30 * time.Second)
+	cancel()
 }

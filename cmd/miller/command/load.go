@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -28,9 +29,12 @@ func (c *LoadCommand) Run(args []string) int {
 		return -1
 	}
 
-	task, err := grpcDriver.LoadTask(args[0])
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	task, err := grpcDriver.LoadTask(ctx, args[0])
 	if err != nil {
-		log.Panic("failed loading task")
+		log.Fatal(err)
 	}
 	fmt.Printf("received task %s from queue\n", task)
 

@@ -1,13 +1,17 @@
 package client
 
 import (
+	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 
 	pb "github.com/dhrp/moulin/pkg/protobuf"
 	"github.com/dhrp/moulin/pkg/rouge"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type MainTestSuite struct {
@@ -40,6 +44,20 @@ func (suite *MainTestSuite) TestGetHealthz() {
 	suite.Equal(pb.Status_SUCCESS, result.Status, "Didn't receive OK health")
 }
 
+func (suite *MainTestSuite) TestLoadExpire() {
+	fmt.Println("*** TestLoadExpire()")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	_, err := suite.grpcDriver.LoadTask(ctx, "clientTest")
+	code := status.Code(err)
+
+	fmt.Println(code)
+	suite.Equal(code, codes.DeadlineExceeded)
+
+}
+
 func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 	fmt.Println("*** TestLoadTask()")
 
@@ -53,7 +71,7 @@ func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 	suite.Equal(pb.Status_SUCCESS, result.Status, "result was not OK")
 
 	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
-	returnedTask, err := suite.grpcDriver.LoadTask("clientTest")
+	returnedTask, err := suite.grpcDriver.LoadTask(context.Background(), "clientTest")
 	suite.Nil(err)
 	suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu4x"), len(returnedTask.TaskID), "TaskID doesn't look valid")
 

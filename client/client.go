@@ -80,13 +80,10 @@ func (g GRPCDriver) PushTask(task *pb.Task) *pb.StatusMessage {
 }
 
 // LoadTask loads a task from the queue
-func (g GRPCDriver) LoadTask(queueID string) (task *pb.Task, err error) {
+func (g GRPCDriver) LoadTask(ctx context.Context, queueID string) (task *pb.Task, err error) {
 	// then load a message
-	t, err := g.client.LoadTask(context.Background(), &pb.RequestMessage{QueueID: queueID})
-	if err != nil {
-		log.Fatalf("could not load task: %v", err)
-	}
-	return t, nil
+	t, err := g.client.LoadTask(ctx, &pb.RequestMessage{QueueID: queueID})
+	return t, err
 }
 
 // HeartBeat updates the expiry of an item on the running set
@@ -131,7 +128,7 @@ func (g GRPCDriver) Fail(queueID, taskID string) *pb.StatusMessage {
 
 	r, err := g.client.Fail(context.Background(), task)
 	if err != nil {
-		log.Fatalf("could not complete task: %v", err)
+		log.Fatalf("could not fail task: %v", err)
 	}
 	return r
 }

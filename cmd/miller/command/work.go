@@ -38,8 +38,8 @@ func (w *Work) Run(args []string) int {
 		process.Work(grpcDriver, args[0], "once")
 		return 0
 	case "until-finished":
-		process.Work(grpcDriver, args[0], "until-finished")
-		return 1
+		exitCode, _ := process.Work(grpcDriver, args[0], "until-finished")
+		return exitCode
 	case "forever":
 		process.Work(grpcDriver, args[0], "forever")
 		return 1

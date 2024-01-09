@@ -101,7 +101,6 @@ func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task,
 		return &pb.Task{}, err
 	}
 	return &pb.Task{TaskID: taskMessage.ID, Body: taskMessage.Body}, nil
-
 }
 
 // LoadTask returns a task from the redis queue
