@@ -61,19 +61,17 @@ func (c *Peek) Run(args []string) int {
 
 // Help (LoadCommand) shows help
 func (c *Peek) Help() string {
-	return `
-Usage: miller peek QUEUE PHASE [DEPTH]
+	return `Usage: moulin-cli peek QUEUE PHASE [DEPTH]
 
-Peek into a queue, show the next n items`
+Peek into a queue, show the next n items
+
+examples:
+  miller peek myqueue running 10
+  miller peek myqueue expired
+`
 }
 
 // Synopsis is the short description
 func (c *Peek) Synopsis() string {
-	return `
-"miller peek" requires at least 2 arguments.
-See 'miller peek --help'.
-
-Usage: miller peek QUEUE PHASE [DEPTH]
-
-Peek into a queue, show the next n items`
+	return `look what is in a queue by phase`
 }

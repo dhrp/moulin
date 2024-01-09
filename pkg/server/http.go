@@ -45,7 +45,7 @@ func simpleHTTPHello(w http.ResponseWriter, r *http.Request) {
 // 		log.Panic(err) // ToDo: return error to the user
 // 	}
 // 	// return queueLength, nil
-// 	result := fmt.Sprintf("sucessfully added %d items, queue now %d items long", count, queueLength)
+// 	result := fmt.Sprintf("successfully added %d items, queue now %d items long", count, queueLength)
 // 	w.Write([]byte(result))
 
 // }
