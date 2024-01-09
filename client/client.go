@@ -155,7 +155,6 @@ func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskL
 		log.Printf(err.Error())
 		return taskList, grpc.Errorf(codes.Unknown, err.Error())
 	}
-	log.Printf("Incoming queue length: %d", taskList.TotalItems)
 	return taskList, nil
 }
 
