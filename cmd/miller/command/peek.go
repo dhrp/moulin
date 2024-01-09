@@ -41,7 +41,7 @@ func (c *Peek) Run(args []string) int {
 
 	taskList, err := grpcDriver.Peek(queueID, phase, int32(limit))
 	if err != nil {
-		fmt.Println("an error occured", err)
+		fmt.Println("an error occurred", err)
 		return -1
 	}
 
@@ -50,7 +50,7 @@ func (c *Peek) Run(args []string) int {
 		fmt.Println(tasks[i])
 	}
 
-	fmt.Printf("items:     %d\n", taskList.TotalItems)
+	fmt.Printf("total items:     %d\n", taskList.TotalItems)
 
 	// fmt.Printf("running:   %d\n", status.NonExpiredCount)
 	// fmt.Printf("expired:   %d\n", status.ExpiredCount)
