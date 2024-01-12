@@ -76,14 +76,6 @@ func main() {
 				},
 			}, nil
 		},
-		"version": func() (cli.Command, error) {
-			return &command.Version{
-				UI: &cli.ColoredUi{
-					Ui:          ui,
-					OutputColor: cli.UiColorGreen,
-				},
-			}, nil
-		},
 	}
 
 	exitStatus, err := c.Run()

@@ -51,16 +51,18 @@ func (w *Work) Run(args []string) int {
 // Help (LoadCommand) shows help
 func (w *Work) Help() string {
 	return `
-Usage: miller work QUEUE [once|until-finished|forever]
+Usage: moulin-cli work QUEUE [once|until-finished|forever]
 
-Work off items from a queue, execute each item as command on the shell`
+Work off items from a queue, execute each item as command on the shell
+
+examples:
+  moulin-cli work my-queue
+  moulin-cli work my-queue forever
+  moulin-cli work my-queue until-finished
+`
 }
 
 // Synopsis is the short description
 func (w *Work) Synopsis() string {
-	return `
-Usage: miller work QUEUE [once|until-finished|forever]
-
-Work off items from a queue, execute each item as command on the shell`
-
+	return "Work off items from a queue, execute each item as command on the shell"
 }
