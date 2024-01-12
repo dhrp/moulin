@@ -67,12 +67,12 @@ func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 		Body: "Just Testing!",
 	}
 
-	result := suite.grpcDriver.PushTask(inputTask)
+	result, err := suite.grpcDriver.PushTask(inputTask)
+	suite.Nil(err)
 	suite.Equal(pb.Status_SUCCESS, result.Status, "result was not OK")
 
 	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
 	returnedTask, err := suite.grpcDriver.LoadTask(context.Background(), "clientTest")
-	suite.Nil(err)
 	suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu4x"), len(returnedTask.TaskID), "TaskID doesn't look valid")
 
 	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
