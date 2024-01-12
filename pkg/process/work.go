@@ -12,28 +12,35 @@ import (
 )
 
 var loadTaskTimeOut = 30 * time.Second
+var heartBeatInterval = 30 * time.Second
+var heartBeatTimeOutSeconds int32 = 300 // 5 minutes
 
 // Work manages getting, heartbeating, and completing or failing
 // items, in a loop
 func Work(grpcDriver *client.GRPCDriver, queueID string, workType string) (result int, err error) {
 
 	var exit bool // whether to stop after completion of a task.
-	ctx, cancel := context.WithCancel(context.Background())
+	var setTimeOut = false
 
 	if workType == "once" {
 		exit = true
 	} else if workType == "until-finished" {
 		exit = false
-		ctx, cancel = context.WithTimeout(context.Background(), loadTaskTimeOut)
+		setTimeOut = true
 	} else if workType == "forever" {
 		exit = false
 	}
 
-	defer cancel()
-
 	// forever loop, until exit == true
 	for {
 		fmt.Printf("Loading a task from the queue.\n")
+		ctx, cancel := context.WithCancel(context.Background())
+
+		if setTimeOut {
+			ctx, cancel = context.WithTimeout(ctx, loadTaskTimeOut)
+		}
+		defer cancel()
+
 		task, err := grpcDriver.LoadTask(ctx, queueID)
 		if status.Code(err) == codes.DeadlineExceeded {
 			fmt.Printf("LoadTask Timeout (%s) has exceeded. The queue is empty, stopping.\n", loadTaskTimeOut)
@@ -78,20 +85,14 @@ func Work(grpcDriver *client.GRPCDriver, queueID string, workType string) (resul
 // RepeatHeartBeat calls the heartbeat function repeatedly, until the task completes
 func RepeatHeartBeat(grpcDriver *client.GRPCDriver, queueID string, taskID string, isWorking *struct{ active bool }) {
 	for {
-		time.Sleep(30 * time.Second)
+		time.Sleep(heartBeatInterval)
 
 		if isWorking.active == false {
 			fmt.Println("   done waiting")
 			break
 		}
 
-		grpcDriver.HeartBeat(queueID, taskID, 300)
+		grpcDriver.HeartBeat(queueID, taskID, heartBeatTimeOutSeconds)
 		fmt.Println("   heartbeat beat")
 	}
-}
-
-// LoadTimeOut is a simple timeout to wait for a new item on the queue or exit
-func LoadTimeOut(cancel func()) {
-	time.Sleep(30 * time.Second)
-	cancel()
 }
