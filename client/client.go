@@ -65,18 +65,14 @@ func (g GRPCDriver) GetHealth() (status pb.StatusMessage, err error) {
 }
 
 // PushTask pushes a task onto the queue
-func (g GRPCDriver) PushTask(task *pb.Task) *pb.StatusMessage {
+func (g GRPCDriver) PushTask(task *pb.Task) (*pb.StatusMessage, error) {
 	// then load a message
 
 	md := metadata.Pairs("authorization", "open sesame")
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	result, err := g.client.PushTask(ctx, task)
-	if err != nil {
-		log.Fatalf("could not push task: %v", err)
-	}
-	log.Printf("Result: %v", result)
-	return result
+	return result, err
 }
 
 // LoadTask loads a task from the queue
