@@ -32,8 +32,8 @@ func NewGRPCDriver() *GRPCDriver {
 	address := os.Getenv("MOULIN_SERVER")
 	if address == "" {
 		address = "localhost:8042"
-		fmt.Println("setting moulinServer to localhost:8042")
 	}
+	fmt.Printf("connecting to moulinServer on %s\n", address)
 
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
