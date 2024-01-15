@@ -2,25 +2,41 @@
 
 BINARY=moulin
 CLI_BINARY=moulin-cli
+GOOS=$(shell go env GOOS)
+GOARCH=$(shell go env GOARCH)
+IMAGE_TAG=$(VERSION)
 
 VERSION=$(shell git describe --tags --always --dirty)
 DATE=$(shell date +%Y%m%d.%H%M)
 
-# ToDo: set versions stuffs in files
-# Setup the -ldflags option for go build here, interpolate the variable values
-# LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
-
-IMAGE_TAG=$(VERSION)
-
-build:
-	go build -o ${BINARY} \
+define build-server
+	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) \
+	go build -o ${BINARY}-$(1)-$(2) \
 	-ldflags "-X main.Version=${VERSION} -X main.Build=${DATE}" \
 	cmd/moulin/*.go
+endef
+
+define build-cli
+	CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) \
+	go build -o ${CLI_BINARY}-$(1)-$(2) \
+	-ldflags "-X main.Version=${VERSION} -X main.Build=${DATE}" \
+	cmd/miller/main.go
+endef
+
+
+build:
+	$(call build-server,${GOOS},$(GOARCH))
+	cp ${BINARY}-${GOOS}-${GOARCH} ${BINARY}
 
 cli:
-	go build -o ${CLI_BINARY} \
-	-ldflags "-X main.Version=${VERSION} -X main.Build=${DATE}" \
-	cmd/miller/*.go
+	$(call build-cli,${GOOS},$(GOARCH))
+	cp ${CLI_BINARY}-${GOOS}-${GOARCH} ${CLI_BINARY}
+
+build-all:
+	$(call build-server,linux,amd64)
+	$(call build-server,darwin,arm64)
+	$(call build-cli,darwin,arm64)
+	$(call build-cli,linux,amd64)
 
 run:
 	./moulin
