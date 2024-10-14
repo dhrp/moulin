@@ -377,6 +377,19 @@ func (c *Client) scanForLists() (lst []string, err error) {
 	return lst, err
 }
 
+// deleteMembers deletes all members of a given set
+func (c *Client) deleteMembers(setName string) {
+	luaScript := `
+        local setName = KEYS[1]
+        local members = redis.call('ZRANGE', setName, 0, -1)
+        for _, member in ipairs(members) do
+            redis.call('DEL', member)
+            redis.call('ZREM', setName, member)
+        end
+    `
+	c.clientpool.Cmd("EVAL", luaScript, 1, setName)
+}
+
 // Do an atomic from sorted list; to sorted list operation
 func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (bool, error) {
 

@@ -416,7 +416,6 @@ func (red *Client) ClearQueue(queueID string) (bool, error) {
 	red.del(queueID + ".running")
 	red.del(queueID + ".expired")
 	red.del(queueID + ".completed")
-	red.del(queueID + ".expired")
 	red.del(queueID + ".failed")
 	// ToDo: !! Clear the individual keys
 
@@ -489,4 +488,26 @@ func (red *Client) AddTasksFromFile(queueID, filePath string) (queueLength int, 
 	log.Println("ADDTASKSFROMFILE END")
 	log.Println("***************")
 	return queueLength, count, nil
+}
+
+// DeleteQueue deletes a queue and all related keys
+func (red *Client) DeleteQueue(queueID string) (bool, error) {
+	log.Println("***************")
+	log.Println("DELETEQUEUE START")
+
+	// get all keys from the queue (and all it states), and delete each key
+
+	red.deleteMembers(queueID + ".running")
+	red.deleteMembers(queueID + ".completed")
+
+	red.del(queueID)
+
+	// red.del(queueID + ".running")
+	// red.del(queueID + ".completed")
+	// red.del(queueID + ".failed")
+	// red.del(queueID + ".expired")
+
+	log.Println("DELETEQUEUE END")
+	log.Println("***************")
+	return true, nil
 }

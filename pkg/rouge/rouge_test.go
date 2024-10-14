@@ -419,6 +419,32 @@ func (suite *RedClientTestSuite) TestListQueues() {
 	log.Printf("list of queues: %v", list)
 }
 
+// test the delete queue function
+func (suite *RedClientTestSuite) TestDeleteQueue() {
+
+	var err error
+	queueID := "test.queue"
+	var msg TaskMessage
+	ctx := context.TODO()
+
+	// push three messages
+	msg = GenerateMessage("message 1")
+	suite.red.lpush(queueID, msg.ToString())
+	msg = GenerateMessage("message 2")
+	suite.red.lpush(queueID, msg.ToString())
+	msg = GenerateMessage("message 3")
+	suite.red.lpush(queueID, msg.ToString())
+
+	// Load two items from the queue
+	suite.red.Load(ctx, queueID, 300)
+	msg, err = suite.red.Load(ctx, queueID, 300)
+	suite.Nil(err, "Didn't expect error")
+
+	_, err = suite.red.DeleteQueue(queueID)
+	suite.Nil(err, "DeleteQueue should not give any errors")
+
+}
+
 func (suite *RedClientTestSuite) TearDownSuite() {
 	// suite.red.flushdb()
 	log.Println("closing suite, cleaning up Redis")
