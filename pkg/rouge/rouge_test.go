@@ -419,6 +419,46 @@ func (suite *RedClientTestSuite) TestListQueues() {
 	log.Printf("list of queues: %v", list)
 }
 
+// test the delete queue function
+func (suite *RedClientTestSuite) TestDeleteQueue() {
+
+	var err error
+	queueID := "test.queue"
+	ctx := context.TODO()
+
+	// push three messages
+	msg1 := GenerateMessage("message 1")
+	suite.red.lpush(queueID, msg1.ToString())
+	msg2 := GenerateMessage("message 2")
+	suite.red.lpush(queueID, msg2.ToString())
+	msg3 := GenerateMessage("message 3")
+	suite.red.lpush(queueID, msg3.ToString())
+
+	// Load two items from the queue
+	suite.red.Load(ctx, queueID, 300)
+	suite.red.Load(ctx, queueID, 300)
+
+	task, _ := suite.red.get(queueID + "." + msg1.ID)
+	suite.Equal(msg1.ToString(), task, "The item should exist")
+	suite.red.Complete(queueID, msg1.ID)
+
+	taskCount, err := suite.red.DeleteQueue(queueID)
+	suite.Nil(err, "DeleteQueue should not give any errors")
+	suite.Equal(3, taskCount, "We should have deleted 3 items")
+
+	// check that the items are gone
+	task, err = suite.red.get(queueID + msg1.ID)
+	suite.NotNil(err, "The item should not exist")
+	task, err = suite.red.get(queueID + msg2.ID)
+	suite.NotNil(err, "The item should not exist")
+}
+
+// test the delete queue function
+func (suite *RedClientTestSuite) TestDeleteQueueNotExisting() {
+	_, err := suite.red.DeleteQueue("this.never.existed")
+	suite.NotNil(err, "DeleteQueue should give an error")
+}
+
 func (suite *RedClientTestSuite) TearDownSuite() {
 	// suite.red.flushdb()
 	log.Println("closing suite, cleaning up Redis")

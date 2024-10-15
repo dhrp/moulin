@@ -207,12 +207,6 @@ func (c *Client) brpop(ctx context.Context, key string) string {
 		c.clientpool.Put(conn)
 		return msg
 	}
-
-	// val, err := c.clientpool.Cmd("BRPOP", key, 0).List()
-	// Do other stuff
-
-	// log.Println("still returning message")
-
 }
 
 func (c *Client) brpoplpush(from string, to string) (string, error) {
@@ -377,6 +371,35 @@ func (c *Client) scanForLists() (lst []string, err error) {
 	return lst, err
 }
 
+// deleteQueue deletes all members of all sets and the queue itself
+func (c *Client) deleteQueue(queueID string) (int, error) {
+	luaScript := `
+		local queueName = KEYS[1]
+        local sets = { 'running', 'expired', 'completed', 'failed' }
+        local totalDeleted = 0
+
+        for _, set in ipairs(sets) do
+            local name = queueName .. '.' .. set
+            local members = redis.call('ZRANGE', name, 0, -1)
+            for _, member in ipairs(members) do
+                redis.call('DEL', member)
+                redis.call('ZREM', name, member)
+                totalDeleted = totalDeleted + 1
+            end
+        end
+		totalDeleted = totalDeleted + redis.call('LLEN', queueName)
+        redis.call('DEL', queueName)
+        return totalDeleted
+    `
+
+	resp := c.clientpool.Cmd("EVAL", luaScript, 1, queueID)
+	if resp.Err != nil {
+		return 0, resp.Err
+	}
+
+	return resp.Int()
+}
+
 // Do an atomic from sorted list; to sorted list operation
 func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (bool, error) {
 
@@ -384,6 +407,11 @@ func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (
 	var err error
 
 	luaScript := `
+		local memberExists = redis.call('ZSCORE', KEYS[1], ARGV[2])
+		if not memberExists then
+			return {err = "member does not exist"}
+		end
+
 		local removed = redis.call('ZREM', KEYS[1], ARGV[2]);
 		local count = redis.call('ZADD', KEYS[2], ARGV[1], ARGV[2]);
 		return {removed, count}
@@ -395,7 +423,7 @@ func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (
 	log.Printf("Doing: EVAL <luascript> %s %s %s %s", from, to, score, member)
 	r := c.clientpool.Cmd("EVAL", luaScript, 2, from, to, score, member)
 	if r.Err != nil {
-		return false, errors.Wrap(r.Err, "lua script error")
+		return false, r.Err
 	}
 	lst, err := r.Array()
 	if err != nil {

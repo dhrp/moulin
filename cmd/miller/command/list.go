@@ -2,12 +2,13 @@ package command
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/dhrp/moulin/client"
 	"github.com/mitchellh/cli"
 )
 
-// Progress getting details of the progress of a given queue
+// List shows all the lists that exist
 type List struct {
 	UI cli.Ui
 }
@@ -26,7 +27,7 @@ func (c *List) Run(args []string) int {
 
 	queueMap, err := grpcDriver.ListQueues()
 	if err != nil {
-		fmt.Println(err)
+		log.Printf("Error: Could not list the queues: %v\n", err)
 		return -1
 	}
 
@@ -39,13 +40,12 @@ func (c *List) Run(args []string) int {
 		fmt.Printf("  completed: %d\n", status.CompletedCount)
 		fmt.Printf("  failed:    %d\n", status.FailedCount)
 	}
-
 	return 0
 }
 
 // Help (LoadCommand) shows help
 func (c *List) Help() string {
-	return "Get the progress of a queue, this shows the lenghts of the various parts."
+	return "Get the progress of a queue, this shows the lengths of the various parts."
 }
 
 // Synopsis is the short description

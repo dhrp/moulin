@@ -20,15 +20,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	API_Healthz_FullMethodName    = "/API.API/Healthz"
-	API_PushTask_FullMethodName   = "/API.API/PushTask"
-	API_LoadTask_FullMethodName   = "/API.API/LoadTask"
-	API_HeartBeat_FullMethodName  = "/API.API/HeartBeat"
-	API_Complete_FullMethodName   = "/API.API/Complete"
-	API_Fail_FullMethodName       = "/API.API/Fail"
-	API_Progress_FullMethodName   = "/API.API/Progress"
-	API_Peek_FullMethodName       = "/API.API/Peek"
-	API_ListQueues_FullMethodName = "/API.API/ListQueues"
+	API_Healthz_FullMethodName     = "/API.API/Healthz"
+	API_PushTask_FullMethodName    = "/API.API/PushTask"
+	API_LoadTask_FullMethodName    = "/API.API/LoadTask"
+	API_HeartBeat_FullMethodName   = "/API.API/HeartBeat"
+	API_Complete_FullMethodName    = "/API.API/Complete"
+	API_Fail_FullMethodName        = "/API.API/Fail"
+	API_Progress_FullMethodName    = "/API.API/Progress"
+	API_Peek_FullMethodName        = "/API.API/Peek"
+	API_ListQueues_FullMethodName  = "/API.API/ListQueues"
+	API_DeleteQueue_FullMethodName = "/API.API/DeleteQueue"
 )
 
 // APIClient is the client API for API service.
@@ -44,6 +45,7 @@ type APIClient interface {
 	Progress(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*QueueProgress, error)
 	Peek(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*TaskList, error)
 	ListQueues(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*QueueMap, error)
+	DeleteQueue(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*StatusMessage, error)
 }
 
 type aPIClient struct {
@@ -135,6 +137,15 @@ func (c *aPIClient) ListQueues(ctx context.Context, in *emptypb.Empty, opts ...g
 	return out, nil
 }
 
+func (c *aPIClient) DeleteQueue(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*StatusMessage, error) {
+	out := new(StatusMessage)
+	err := c.cc.Invoke(ctx, API_DeleteQueue_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // APIServer is the server API for API service.
 // All implementations must embed UnimplementedAPIServer
 // for forward compatibility
@@ -148,6 +159,7 @@ type APIServer interface {
 	Progress(context.Context, *RequestMessage) (*QueueProgress, error)
 	Peek(context.Context, *RequestMessage) (*TaskList, error)
 	ListQueues(context.Context, *emptypb.Empty) (*QueueMap, error)
+	DeleteQueue(context.Context, *RequestMessage) (*StatusMessage, error)
 	mustEmbedUnimplementedAPIServer()
 }
 
@@ -181,6 +193,9 @@ func (UnimplementedAPIServer) Peek(context.Context, *RequestMessage) (*TaskList,
 }
 func (UnimplementedAPIServer) ListQueues(context.Context, *emptypb.Empty) (*QueueMap, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListQueues not implemented")
+}
+func (UnimplementedAPIServer) DeleteQueue(context.Context, *RequestMessage) (*StatusMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteQueue not implemented")
 }
 func (UnimplementedAPIServer) mustEmbedUnimplementedAPIServer() {}
 
@@ -357,6 +372,24 @@ func _API_ListQueues_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _API_DeleteQueue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(APIServer).DeleteQueue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: API_DeleteQueue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(APIServer).DeleteQueue(ctx, req.(*RequestMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // API_ServiceDesc is the grpc.ServiceDesc for API service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -399,6 +432,10 @@ var API_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListQueues",
 			Handler:    _API_ListQueues_Handler,
+		},
+		{
+			MethodName: "DeleteQueue",
+			Handler:    _API_DeleteQueue_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

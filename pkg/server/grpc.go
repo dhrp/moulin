@@ -214,3 +214,17 @@ func (s *server) Peek(ctx context.Context, in *pb.RequestMessage) (*pb.TaskList,
 	}
 	return taskList, nil
 }
+
+func (s *server) DeleteQueue(ctx context.Context, in *pb.RequestMessage) (*pb.StatusMessage, error) {
+	queueID := in.QueueID
+
+	taskCount, err := s.rouge.DeleteQueue(queueID)
+	if err != nil {
+		return &pb.StatusMessage{Status: pb.Status_FAILURE, Detail: err.Error()}, err
+	}
+
+	return &pb.StatusMessage{
+		Status: pb.Status_SUCCESS,
+		Detail: "successfully deleted queue with " + fmt.Sprintf("%d", taskCount) + " tasks",
+	}, nil
+}

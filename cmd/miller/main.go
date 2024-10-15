@@ -76,6 +76,14 @@ func main() {
 				},
 			}, nil
 		},
+		"delete-queue": func() (cli.Command, error) {
+			return &command.DeleteQueue{
+				UI: &cli.ColoredUi{
+					Ui:          ui,
+					OutputColor: cli.UiColorGreen,
+				},
+			}, nil
+		},
 	}
 
 	exitStatus, err := c.Run()

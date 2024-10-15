@@ -62,6 +62,12 @@ service API {
       get: "/v1/queue"
     };
   }
+
+  rpc DeleteQueue (RequestMessage) returns (StatusMessage) {
+    option (google.api.http) = {
+      delete: "/v1/queue/{queueID}"
+    };
+  }
 }
 
 enum Status {
