@@ -408,9 +408,9 @@ func (c *Client) moveMemberFromSetToSet(from string, to string, member string) (
 
 	luaScript := `
 		local memberExists = redis.call('ZSCORE', KEYS[1], ARGV[2])
-        if not memberExists then
-            return {err = "member does not exist"}
-        end
+		if not memberExists then
+			return {err = "member does not exist"}
+		end
 
 		local removed = redis.call('ZREM', KEYS[1], ARGV[2]);
 		local count = redis.call('ZADD', KEYS[2], ARGV[1], ARGV[2]);
