@@ -424,25 +424,32 @@ func (suite *RedClientTestSuite) TestDeleteQueue() {
 
 	var err error
 	queueID := "test.queue"
-	var msg TaskMessage
 	ctx := context.TODO()
 
 	// push three messages
-	msg = GenerateMessage("message 1")
-	suite.red.lpush(queueID, msg.ToString())
-	msg = GenerateMessage("message 2")
-	suite.red.lpush(queueID, msg.ToString())
-	msg = GenerateMessage("message 3")
-	suite.red.lpush(queueID, msg.ToString())
+	msg1 := GenerateMessage("message 1")
+	suite.red.lpush(queueID, msg1.ToString())
+	msg2 := GenerateMessage("message 2")
+	suite.red.lpush(queueID, msg2.ToString())
+	msg3 := GenerateMessage("message 3")
+	suite.red.lpush(queueID, msg3.ToString())
 
 	// Load two items from the queue
 	suite.red.Load(ctx, queueID, 300)
-	msg, err = suite.red.Load(ctx, queueID, 300)
-	suite.Nil(err, "Didn't expect error")
+	suite.red.Load(ctx, queueID, 300)
+
+	task, _ := suite.red.get(queueID + "." + msg1.ID)
+	suite.Equal(msg1.ToString(), task, "The item should exist")
+	suite.red.Complete(queueID, msg1.ID)
 
 	_, err = suite.red.DeleteQueue(queueID)
 	suite.Nil(err, "DeleteQueue should not give any errors")
 
+	// check that the items are gone
+	task, err = suite.red.get(queueID + msg1.ID)
+	suite.NotNil(err, "The item should not exist")
+	task, err = suite.red.get(queueID + msg2.ID)
+	suite.NotNil(err, "The item should not exist")
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {

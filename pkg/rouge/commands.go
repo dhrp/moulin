@@ -207,12 +207,6 @@ func (c *Client) brpop(ctx context.Context, key string) string {
 		c.clientpool.Put(conn)
 		return msg
 	}
-
-	// val, err := c.clientpool.Cmd("BRPOP", key, 0).List()
-	// Do other stuff
-
-	// log.Println("still returning message")
-
 }
 
 func (c *Client) brpoplpush(from string, to string) (string, error) {
@@ -377,17 +371,23 @@ func (c *Client) scanForLists() (lst []string, err error) {
 	return lst, err
 }
 
-// deleteMembers deletes all members of a given set
-func (c *Client) deleteMembers(setName string) {
+// deleteQueue deletes all members of a given set
+func (c *Client) deleteQueue(queueName string) {
 	luaScript := `
-        local setName = KEYS[1]
-        local members = redis.call('ZRANGE', setName, 0, -1)
-        for _, member in ipairs(members) do
-            redis.call('DEL', member)
-            redis.call('ZREM', setName, member)
-        end
+		local sets = { 'running', 'expired', 'completed', 'failed' }
+        local queueName = KEYS[1]
+        for _, set in ipairs(sets) do
+		
+		local name = queueName .. '.' .. set
+        	local members = redis.call('ZRANGE', name, 0, -1)
+			for _, member in ipairs(members) do
+				redis.call('DEL', member)
+				redis.call('ZREM', setName, member)
+			end
+		end
+		redis.call('DEL', queueName)
     `
-	c.clientpool.Cmd("EVAL", luaScript, 1, setName)
+	c.clientpool.Cmd("EVAL", luaScript, 1, queueName)
 }
 
 // Do an atomic from sorted list; to sorted list operation

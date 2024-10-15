@@ -484,7 +484,7 @@ func (red *Client) AddTasksFromFile(queueID, filePath string) (queueLength int, 
 		}
 	}
 
-	log.Printf("sucessfully added %d items, queue now %d items long", count, queueLength)
+	log.Printf("successfully added %d items, queue now %d items long", count, queueLength)
 	log.Println("ADDTASKSFROMFILE END")
 	log.Println("***************")
 	return queueLength, count, nil
@@ -497,8 +497,8 @@ func (red *Client) DeleteQueue(queueID string) (bool, error) {
 
 	// get all keys from the queue (and all it states), and delete each key
 
-	red.deleteMembers(queueID + ".running")
-	red.deleteMembers(queueID + ".completed")
+	red.deleteQueue(queueID + ".running")
+	red.deleteQueue(queueID + ".completed")
 
 	red.del(queueID)
 
