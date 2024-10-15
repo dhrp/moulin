@@ -243,7 +243,7 @@ func (red *Client) Complete(queueID string, taskID string) (bool, error) {
 	return ok, nil
 }
 
-// Fail marks the item as completed.
+// Fail marks the item as failed.
 func (red *Client) Fail(queueID string, taskID string) (bool, error) {
 
 	if red.clientpool == nil {
@@ -491,23 +491,13 @@ func (red *Client) AddTasksFromFile(queueID, filePath string) (queueLength int, 
 }
 
 // DeleteQueue deletes a queue and all related keys
-func (red *Client) DeleteQueue(queueID string) (bool, error) {
+func (red *Client) DeleteQueue(queueID string) (int, error) {
 	log.Println("***************")
 	log.Println("DELETEQUEUE START")
 
-	// get all keys from the queue (and all it states), and delete each key
-
-	red.deleteQueue(queueID + ".running")
-	red.deleteQueue(queueID + ".completed")
-
-	red.del(queueID)
-
-	// red.del(queueID + ".running")
-	// red.del(queueID + ".completed")
-	// red.del(queueID + ".failed")
-	// red.del(queueID + ".expired")
+	taskCount, err := red.deleteQueue(queueID)
 
 	log.Println("DELETEQUEUE END")
 	log.Println("***************")
-	return true, nil
+	return taskCount, err
 }

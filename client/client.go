@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -109,7 +110,9 @@ func (g GRPCDriver) Complete(queueID, taskID string) *pb.StatusMessage {
 
 	r, err := g.client.Complete(context.Background(), task)
 	if err != nil {
-		log.Fatalf("could not complete task: %v", err)
+		// Unpack the gRPC error
+		st, _ := status.FromError(err)
+		log.Fatalf("Error: Could not complete task: %v", st.Message())
 	}
 	return r
 }
@@ -134,7 +137,7 @@ func (g GRPCDriver) Progress(queueID string) (progress *pb.QueueProgress, err er
 	// then load a message
 	progress, err = g.client.Progress(context.Background(), &pb.RequestMessage{QueueID: queueID})
 	if err != nil {
-		return progress, grpc.Errorf(codes.Unknown, "could not get progress")
+		return progress, status.Errorf(codes.Unknown, "could not get progress")
 	}
 	return progress, nil
 }
@@ -149,7 +152,7 @@ func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskL
 	taskList, err = g.client.Peek(context.Background(), requestMessage)
 	if err != nil {
 		log.Printf(err.Error())
-		return taskList, grpc.Errorf(codes.Unknown, err.Error())
+		return taskList, status.Errorf(codes.Unknown, err.Error())
 	}
 	return taskList, nil
 }
@@ -158,8 +161,14 @@ func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskL
 func (g GRPCDriver) ListQueues() (queues map[string]*pb.QueueProgress, err error) {
 	queueMap, err := g.client.ListQueues(context.Background(), &empty.Empty{})
 	if err != nil {
-		return nil, grpc.Errorf(codes.Unknown, "could not list queues")
+		st, _ := status.FromError(err)
+		return nil, errors.New(st.Message())
 	}
-
 	return queueMap.Queues, nil
+}
+
+// DeleteQueue deletes a queue
+func (g GRPCDriver) DeleteQueue(queueID string) (*pb.StatusMessage, error) {
+	res, err := g.client.DeleteQueue(context.Background(), &pb.RequestMessage{QueueID: queueID})
+	return res, err
 }

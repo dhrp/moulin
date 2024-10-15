@@ -442,14 +442,21 @@ func (suite *RedClientTestSuite) TestDeleteQueue() {
 	suite.Equal(msg1.ToString(), task, "The item should exist")
 	suite.red.Complete(queueID, msg1.ID)
 
-	_, err = suite.red.DeleteQueue(queueID)
+	taskCount, err := suite.red.DeleteQueue(queueID)
 	suite.Nil(err, "DeleteQueue should not give any errors")
+	suite.Equal(3, taskCount, "We should have deleted 3 items")
 
 	// check that the items are gone
 	task, err = suite.red.get(queueID + msg1.ID)
 	suite.NotNil(err, "The item should not exist")
 	task, err = suite.red.get(queueID + msg2.ID)
 	suite.NotNil(err, "The item should not exist")
+}
+
+// test the delete queue function
+func (suite *RedClientTestSuite) TestDeleteQueueNotExisting() {
+	_, err := suite.red.DeleteQueue("this.never.existed")
+	suite.NotNil(err, "DeleteQueue should give an error")
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {

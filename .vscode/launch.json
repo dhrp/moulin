@@ -24,6 +24,16 @@
       "cwd": "${fileDirname}",
       "console": "integratedTerminal",
       "preLaunchTask": "go test"
+    },
+    {
+      "name": "Run Client with 'work q4'",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "./cmd/miller/main.go",
+      "args": ["list"],
+      "env": {},
+      "showLog": true
     }
   ]
 }

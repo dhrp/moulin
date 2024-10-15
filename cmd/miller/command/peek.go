@@ -27,6 +27,7 @@ func (c *Peek) Run(args []string) int {
 		fmt.Println("received too many arguments")
 		return -1
 	} else if len(args) < 2 {
+		fmt.Println("received too few arguments")
 		fmt.Println(c.Synopsis())
 		return -1
 	} else if len(args) == 3 {
@@ -73,5 +74,5 @@ examples:
 
 // Synopsis is the short description
 func (c *Peek) Synopsis() string {
-	return `look what is in a queue by phase`
+	return `look what is in a queue by phase (running, expired, completed, failed)`
 }
