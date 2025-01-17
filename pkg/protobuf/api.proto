@@ -57,7 +57,7 @@ service API {
     };
   }
 
-  rpc ListQueues (google.protobuf.Empty) returns (QueueMap) {
+  rpc ListQueues (google.protobuf.Empty) returns (QueueList) {
     option (google.api.http) = {
       get: "/v1/queue"
     };
@@ -117,7 +117,12 @@ message TaskList {
   repeated Task tasks = 2;
 }
 
-message QueueMap {
+message QueueInfo {
+  string queueID = 1;
+  QueueProgress progress = 2;
+}
+
+message QueueList {
   int32 totalItems = 1;
-  map<string, QueueProgress> queues = 2;
+  repeated QueueInfo queues = 2;
 }

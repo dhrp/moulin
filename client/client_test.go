@@ -89,6 +89,14 @@ func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 	suite.Equal(pb.Status_SUCCESS, result.Status)
 }
 
+func (suite *MainTestSuite) TestListQueues() {
+	fmt.Println("*** TestListQueues()")
+
+	result, err := suite.grpcDriver.ListQueues()
+	suite.Nil(err, "listQueues raises an error")
+	fmt.Println(result)
+}
+
 // TestTaskConnectFirst is a test to show a problem where, if LoadTask is
 // started before a task is on the queue, it will not return the first item
 // added to that queue. It will add (and return) subsequent items..

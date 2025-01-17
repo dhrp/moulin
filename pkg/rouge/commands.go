@@ -287,6 +287,17 @@ func (c *Client) zadd(set string, score string, member string) (int, error) {
 	return count, nil
 }
 
+// zaddCreate creates a new member in the set, and does NOT update if it already exists
+func (c *Client) zaddCreate(set string, score string, member string) (int, error) {
+
+	log.Printf("Doing: ZADD %s NX %s %s", set, score, member)
+	count, err := c.clientpool.Cmd("ZADD", set, "NX", score, member).Int()
+	if err != nil {
+		log.Panic(err)
+	}
+	return count, nil
+}
+
 // // ZADD Q_working_set <now>+300 queue-id.task-id
 func (c *Client) zaddUpdate(set string, score string, member string) (int, error) {
 
@@ -377,6 +388,32 @@ func (c *Client) scanForLists() (lst []string, err error) {
 	}
 
 	return lst, err
+}
+
+func (c *Client) getLists(sort string) (lst []string, err error) {
+
+	masterList := "listOfLists"
+
+	var resp *redis.Resp
+	var list []string
+
+	if sort == "created" {
+		resp = c.clientpool.Cmd("ZRANGE", masterList, 0, -1)
+	} else {
+		resp = c.clientpool.Cmd("SORT", masterList, "ALPHA")
+	}
+
+	respArr, err := resp.Array()
+
+	for _, item := range respArr {
+		str, err := item.Str()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, str)
+	}
+
+	return list, nil
 }
 
 // deleteQueue deletes all members of all sets and the queue itself

@@ -311,7 +311,7 @@ func (red *Client) ListQueues() (map[string]QueueInfo, error) {
 	log.Println("***************")
 	log.Println("LISTQUEUES START")
 
-	queueList, err := red.scanForLists()
+	queueList, err := red.getLists("alpha")
 	queueDetailMap := make(map[string]QueueInfo)
 
 	for _, queue := range queueList {
@@ -394,6 +394,10 @@ func (red *Client) AddTask(queueID string, task TaskMessage) (int, error) {
 	if red.clientpool == nil {
 		return -1, errors.New("Connection to Redis not initialized. Did you forget to initialize?")
 	}
+
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+
+	red.zaddCreate("listOfLists", timestamp, queueID)
 
 	taskMessageStr := task.ToString()
 	newlength, err := red.lpush(queueID, taskMessageStr)
