@@ -6,12 +6,15 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	pb "github.com/dhrp/moulin/pkg/protobuf"
 	"github.com/golang/protobuf/ptypes/empty"
 	"github.com/pkg/errors"
+	"github.com/sethvargo/go-retry"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -27,6 +30,22 @@ type GRPCDriver struct {
 	client     pb.APIClient
 }
 
+// MoulinConnectionConfig defines a configuration for timeouts
+type MoulinConnectionConfig struct {
+	LoadTaskTimeOut          time.Duration // LoadTaskTimeOut is how long we wait for a task to be loaded (when we are doing `until finished`)
+	HeartBeatInterval        time.Duration // HeartBeatInterval is the time between heartbeats
+	ServerUnavailableTimeOut time.Duration // ServerUnavailableTimeOut is how long we accept the server to be down before we consider it dead and quit
+	TaskExpirationTime       time.Duration // taskExpirationTime is how much time is allowed before the task is considered expired
+}
+
+// ClientConfig is the (default) configuration for the client (timeouts etc)
+var ClientConfig = MoulinConnectionConfig{
+	LoadTaskTimeOut:          30 * time.Second,
+	HeartBeatInterval:        2 * time.Minute,
+	ServerUnavailableTimeOut: 1 * time.Hour,
+	TaskExpirationTime:       5 * time.Minute,
+}
+
 // NewGRPCDriver creates and initializes a new GRPC client and connection
 func NewGRPCDriver() *GRPCDriver {
 
@@ -36,7 +55,16 @@ func NewGRPCDriver() *GRPCDriver {
 	}
 	fmt.Printf("connecting to moulinServer on %s\n", address)
 
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	var backoffConfig = backoff.Config{
+		MaxDelay: 10 * time.Minute,
+	}
+
+	connectParams := grpc.ConnectParams{
+		Backoff:           backoffConfig,
+		MinConnectTimeout: ClientConfig.ServerUnavailableTimeOut,
+	}
+
+	conn, err := grpc.Dial(address, grpc.WithConnectParams(connectParams), grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -85,19 +113,18 @@ func (g GRPCDriver) LoadTask(ctx context.Context, queueID string) (task *pb.Task
 
 // HeartBeat updates the expiry of an item on the running set
 // ToDo: add a timeout, for testing
-func (g GRPCDriver) HeartBeat(queueID, taskID string, expirationSec int32) *pb.StatusMessage {
+func (g GRPCDriver) HeartBeat(queueID, taskID string) (*pb.StatusMessage, error) {
 	// then load a message
 	task := &pb.Task{
 		QueueID:       queueID,
 		TaskID:        taskID,
-		ExpirationSec: expirationSec,
+		ExpirationSec: int32(ClientConfig.TaskExpirationTime.Seconds()),
 	}
-
 	r, err := g.client.HeartBeat(context.Background(), task)
 	if err != nil {
-		log.Fatalf("could not complete heartbeat: %v", err)
+		log.Printf("could not complete heartbeat: %v", err)
 	}
-	return r
+	return r, err
 }
 
 // Complete moves the task from the running set to the completed set
@@ -108,7 +135,22 @@ func (g GRPCDriver) Complete(queueID, taskID string) *pb.StatusMessage {
 		TaskID:  taskID,
 	}
 
-	r, err := g.client.Complete(context.Background(), task)
+	// For the "complete" action we implement an incremental retry function. This is because
+	// the server could be down, and if it is, we want to retry the action, as it
+	// could prevent a lot of work from being lost.
+	ctx := context.Background()
+	b := retry.NewFibonacci(1 * time.Second)
+	b = retry.WithMaxDuration(20*time.Second, b)
+
+	r, err := retry.DoValue(ctx, b, func(ctx context.Context) (*pb.StatusMessage, error) {
+		res, err := g.client.Complete(ctx, task)
+		if err != nil {
+			log.Printf("Completing the task failed; is the server down? Retrying...")
+			return nil, retry.RetryableError(fmt.Errorf("bad response: %v", err))
+		}
+		return res, nil
+	})
+
 	if err != nil {
 		// Unpack the gRPC error
 		st, _ := status.FromError(err)

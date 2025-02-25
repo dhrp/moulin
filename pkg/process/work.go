@@ -11,9 +11,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var loadTaskTimeOut = 30 * time.Second
-var heartBeatInterval = 30 * time.Second
-var heartBeatTimeOutSeconds int32 = 300 // 5 minutes
+var loadTaskTimeOut = client.ClientConfig.LoadTaskTimeOut
+var heartBeatInterval = client.ClientConfig.HeartBeatInterval
+var serverUnavailableTimeOut = client.ClientConfig.ServerUnavailableTimeOut
 
 // Work manages getting, heartbeating, and completing or failing
 // items, in a loop
@@ -92,7 +92,11 @@ func RepeatHeartBeat(grpcDriver *client.GRPCDriver, queueID string, taskID strin
 			break
 		}
 
-		grpcDriver.HeartBeat(queueID, taskID, heartBeatTimeOutSeconds)
-		fmt.Println("   heartbeat beat")
+		_, err := grpcDriver.HeartBeat(queueID, taskID)
+		if err != nil {
+			log.Printf("could not complete heartbeat: %v", err)
+		} else {
+			fmt.Println("heartbeat beat")
+		}
 	}
 }
