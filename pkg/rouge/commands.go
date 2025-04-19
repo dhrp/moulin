@@ -290,8 +290,6 @@ func (c *Client) zadd(set string, score string, member string) (int, error) {
 // // ZADD Q_working_set <now>+300 queue-id.task-id
 func (c *Client) zaddUpdate(set string, score string, member string) (int, error) {
 
-	// ToDo: instead of returning an error if the item had been updated in the same
-	// second, return success. -- will havo to be EVAL GET then ZADD
 	log.Printf("Doing: ZADD %s XX CH %s %s", set, score, member)
 	// ZADD the element. XX says only update existing items, CH means return us the amount
 	// of *changed* elements. So 1 is good (found an item, AND changed a score. 0 is bad)
@@ -301,6 +299,16 @@ func (c *Client) zaddUpdate(set string, score string, member string) (int, error
 		return 0, err
 	}
 
+	// To prevent false positives, we check if the item was actually in the set
+	// only if it was not, we return an error.
+	if count == 0 {
+		resp := c.clientpool.Cmd("ZSCORE", set, member)
+		if resp.IsType(redis.Nil) {
+			errMsg := fmt.Sprintf("Item %s not found in set %s!", member, set)
+			return 0, errors.New(errMsg)
+		}
+		return 1, nil
+	}
 	return count, nil
 }
 
@@ -395,6 +403,10 @@ func (c *Client) deleteQueue(queueID string) (int, error) {
 	resp := c.clientpool.Cmd("EVAL", luaScript, 1, queueID)
 	if resp.Err != nil {
 		return 0, resp.Err
+	}
+	val, _ := resp.Int()
+	if val == 0 {
+		return 0, errors.New("No items deleted")
 	}
 
 	return resp.Int()

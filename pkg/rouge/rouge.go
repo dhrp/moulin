@@ -205,10 +205,9 @@ func (red *Client) Heartbeat(queueID string, taskID string, expirationSec int32)
 	score := strconv.FormatInt(expiresAt, 10)
 
 	// _, _, _ = set, score, value
-	count, _ := red.zaddUpdate(set, score, member)
-	if count == 0 {
-		errMsg := "Heartbeat: no item could be found to update, was item already " +
-			"completed?, or perhaps the item was updated < 1 sec ago."
+	_, err := red.zaddUpdate(set, score, member)
+	if err != nil {
+		errMsg := "Heartbeat: no item could be found to update, was the item already completed?"
 		log.Println(errMsg)
 		return 0, errors.New(errMsg)
 	}

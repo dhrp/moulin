@@ -1,6 +1,8 @@
 module github.com/dhrp/moulin
 
-go 1.20
+go 1.21
+
+toolchain go1.23.3
 
 require (
 	github.com/golang/protobuf v1.5.3
@@ -40,6 +42,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/posener/complete v1.1.1 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
+	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	golang.org/x/crypto v0.14.0 // indirect

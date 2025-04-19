@@ -15,7 +15,7 @@ import (
 func (suite *ServerTestSuite) TestHealthz() {
 	req := &empty.Empty{}
 	resp, _ := suite.server.Healthz(context.Background(), req)
-	suite.NotEmpty(resp, "didnt get a response")
+	suite.NotEmpty(resp, "didn't get a response")
 }
 
 func (suite *ServerTestSuite) TestPushLoadAndCompleteTask() {

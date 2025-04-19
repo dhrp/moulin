@@ -104,7 +104,7 @@ func (s *server) LoadTask(ctx context.Context, in *pb.RequestMessage) (*pb.Task,
 }
 
 // LoadTask returns a task from the redis queue
-func (s *server) HeartBeat(ctx context.Context, in *pb.Task) (*pb.StatusMessage, error) {
+func (s *server) HeartBeat(_ context.Context, in *pb.Task) (*pb.StatusMessage, error) {
 
 	queueID := in.QueueID
 	taskID := in.TaskID
@@ -118,11 +118,9 @@ func (s *server) HeartBeat(ctx context.Context, in *pb.Task) (*pb.StatusMessage,
 
 	expires, err := s.rouge.Heartbeat(queueID, taskID, expirationSec)
 	if err != nil {
-		// ToDo return error to client, it could be because item was just updated
-		log.Println(err)
 		return &pb.StatusMessage{
 			Status: pb.Status_FAILURE,
-			Detail: fmt.Sprintf("Heartbeat failed, task not found or updated in the same second"),
+			Detail: err.Error(), // "usually: item not found",
 		}, nil
 	}
 
@@ -133,7 +131,7 @@ func (s *server) HeartBeat(ctx context.Context, in *pb.Task) (*pb.StatusMessage,
 }
 
 // Complete moves a task from the running to the complete set
-func (s *server) Complete(ctx context.Context, in *pb.Task) (*pb.StatusMessage, error) {
+func (s *server) Complete(_ context.Context, in *pb.Task) (*pb.StatusMessage, error) {
 
 	queueID := in.QueueID
 	taskID := in.TaskID
@@ -150,7 +148,7 @@ func (s *server) Complete(ctx context.Context, in *pb.Task) (*pb.StatusMessage, 
 }
 
 // Fail moves a task from the running queue to the failed set
-func (s *server) Fail(ctx context.Context, in *pb.Task) (*pb.StatusMessage, error) {
+func (s *server) Fail(_ context.Context, in *pb.Task) (*pb.StatusMessage, error) {
 
 	queueID := in.QueueID
 	taskID := in.TaskID
@@ -175,7 +173,7 @@ func (s *server) Progress(ctx context.Context, in *pb.RequestMessage) (*pb.Queue
 	return queueInfo.ToBuff(), nil
 }
 
-func (s *server) ListQueues(ctx context.Context, in *empty.Empty) (*pb.QueueMap, error) {
+func (s *server) ListQueues(_ context.Context, in *empty.Empty) (*pb.QueueMap, error) {
 
 	queueMap := &pb.QueueMap{Queues: make(map[string]*pb.QueueProgress)}
 	queues, err := s.rouge.ListQueues()
@@ -193,7 +191,7 @@ func (s *server) ListQueues(ctx context.Context, in *empty.Empty) (*pb.QueueMap,
 }
 
 // Peek returns a count and messageList
-func (s *server) Peek(ctx context.Context, in *pb.RequestMessage) (*pb.TaskList, error) {
+func (s *server) Peek(_ context.Context, in *pb.RequestMessage) (*pb.TaskList, error) {
 	// var task pb.Task
 	taskList := &pb.TaskList{}
 
@@ -215,7 +213,7 @@ func (s *server) Peek(ctx context.Context, in *pb.RequestMessage) (*pb.TaskList,
 	return taskList, nil
 }
 
-func (s *server) DeleteQueue(ctx context.Context, in *pb.RequestMessage) (*pb.StatusMessage, error) {
+func (s *server) DeleteQueue(_ context.Context, in *pb.RequestMessage) (*pb.StatusMessage, error) {
 	queueID := in.QueueID
 
 	taskCount, err := s.rouge.DeleteQueue(queueID)
