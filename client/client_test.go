@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
@@ -71,18 +72,20 @@ func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 	suite.Nil(err)
 	suite.Equal(pb.Status_SUCCESS, result.Status, "result was not OK")
 
-	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
-	returnedTask, err := suite.grpcDriver.LoadTask(context.Background(), "clientTest")
+	loadCtx, loadCancel := context.WithCancel(context.Background())
+	returnedTask, err := suite.grpcDriver.LoadTask(loadCtx, "clientTest")
+	loadCancel() // cancel the load context
 	suite.Equal(len("0vNrL62AGAdIzRZ9pReEnKeMu4x"), len(returnedTask.TaskID), "TaskID doesn't look valid")
 
-	// ToDo: Set a timeout to loading task, and make a case where we add a task first.
-	result = suite.grpcDriver.HeartBeat("clientTest", returnedTask.TaskID, 301)
+	result, _ = suite.grpcDriver.HeartBeat("clientTest", returnedTask.TaskID)
 	suite.Equal(pb.Status_SUCCESS, result.Status)
 
-	result = suite.grpcDriver.HeartBeat("clientTest", "doesnt-exist", 301)
+	result, err = suite.grpcDriver.HeartBeat("clientTest", "doesnt-exist")
+	suite.Equal(err, nil)
 	suite.Equal(pb.Status_FAILURE, result.Status)
 
-	result = suite.grpcDriver.Complete("clientTest", returnedTask.TaskID)
+	ctx := context.Background()
+	result = suite.grpcDriver.Complete(ctx, "clientTest", returnedTask.TaskID)
 	suite.Equal(pb.Status_SUCCESS, result.Status)
 }
 
@@ -142,11 +145,11 @@ func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 // 	}
 // }
 
-// func (suite *MainTestSuite) TearDownSuite() {
-// 	log.Println("Tearing down test suite")
-// 	log.Println("closing grpcDriver connection")
-// 	suite.grpcDriver.Connection.Close()
-// }
+func (suite *MainTestSuite) TearDownSuite() {
+	log.Println("Tearing down test suite")
+	log.Println("closing grpcDriver connection")
+	suite.grpcDriver.Connection.Close()
+}
 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run

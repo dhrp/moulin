@@ -251,8 +251,13 @@ func (suite *RedClientTestSuite) TestHeartbeatPhase() {
 	suite.Nil(err, "didn't expect an error")
 	suite.NotZero(expires, "expired a non-zero expiry")
 
-	// Here we do a second update, which is expected to fail
-	expires, err = suite.red.Heartbeat(queueID, member, expirationSec)
+	// Here we try to update it again, which should succeed (again)
+	expires2, err := suite.red.Heartbeat(queueID, taskID, expirationSec)
+	suite.Nil(err, "didn't expect an error")
+	suite.NotZero(expires2, "expired a non-zero expiry")
+
+	// Here we try to update a nonexisting member, which is expected to fail
+	expires, err = suite.red.Heartbeat(queueID, "nonexisting", expirationSec)
 	suite.NotNil(err, "I expected an error")
 	suite.Zero(expires, "expired a non-zero expiry")
 }
