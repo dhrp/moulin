@@ -69,12 +69,6 @@ func (red *Client) Info() (string, error) {
 	return resp.Str()
 }
 
-//
-// func reportDone(ctx context.Context) {
-// 	done := <-ctx.Done()
-// 	fmt.Println("Context done!!", done)
-// }
-
 // SlimLoad loads a message from the queue in a lean way. For debugging
 func (red *Client) SlimLoad(ctx context.Context, queueID string, expirationSec int) (TaskMessage, error) {
 
@@ -267,65 +261,67 @@ func (red *Client) Fail(queueID string, taskID string) (bool, error) {
 }
 
 // Progress gets the status of the current lists in the queue
-func (red *Client) Progress(queueID string) (QueueInfo, error) {
+func (red *Client) Progress(queueID string) (queueProgress QueueProgress, err error) {
 	log.Println("***************")
 	log.Println("PROGRESS START")
 
-	var queueInfo QueueInfo
-	var err error
-
 	// show length of incoming list
-	queueInfo.incomingCount, err = red.getListLength(queueID)
+	queueProgress.incomingCount, err = red.getListLength(queueID)
 	if err != nil {
-		log.Panic(err)
+		return queueProgress, err
 	}
 
 	// show length of received list
-	queueInfo.receivedCount, err = red.getListLength(queueID + ".received")
-	if err != nil {
-		log.Panic(err)
-	}
+	queueProgress.receivedCount, _ = red.getListLength(queueID + ".received")
 
 	// show count of non-expired items in running set
 	now := time.Now().Unix()
 	score := strconv.FormatInt(now, 10)
-	queueInfo.runningCount, _ = red.zcount(queueID+".running", score, "inf")
+	queueProgress.runningCount, _ = red.zcount(queueID+".running", score, "inf")
 
 	// show count of expired items in running set
-	queueInfo.expiredCount, _ = red.zcount(queueID+".running", "-inf", score)
+	queueProgress.expiredCount, _ = red.zcount(queueID+".running", "-inf", score)
 
 	// show count of items in completed set
-	queueInfo.completedCount, _ = red.zcount(queueID+".completed", "-inf", "inf")
+	queueProgress.completedCount, _ = red.zcount(queueID+".completed", "-inf", "inf")
 
 	// show count of items in failed set
-	queueInfo.failedCount, _ = red.zcount(queueID+".failed", "-inf", "inf")
+	queueProgress.failedCount, _ = red.zcount(queueID+".failed", "-inf", "inf")
 
-	log.Println(queueInfo.ToString())
+	log.Println(queueProgress.ToString())
 	log.Println("PROGRESS END")
 	log.Println("***************")
-	return queueInfo, nil
+	return queueProgress, nil
 }
 
 // ListQueues is implemented in GRPC
-func (red *Client) ListQueues() (map[string]QueueInfo, error) {
+func (red *Client) ListQueues(sortOrder string) (queueList []QueueInfo, err error) {
 	log.Println("***************")
 	log.Println("LISTQUEUES START")
 
-	queueList, err := red.getLists("alpha")
-	queueDetailMap := make(map[string]QueueInfo)
+	queues, err := red.getLists(sortOrder)
+	if err != nil {
+		return queueList, err
+	}
 
-	for _, queue := range queueList {
-		queueInfo, err := red.Progress(queue)
+	queueList = make([]QueueInfo, 0)
+
+	for _, queue := range queues {
+		queueProgress, err := red.Progress(queue)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get progress for queue")
 		}
-		queueDetailMap[queue] = queueInfo
+		queueInfo := QueueInfo{
+			QueueID:  queue,
+			Progress: queueProgress,
+		}
+		queueList = append(queueList, queueInfo)
 	}
 
 	log.Println("LISTQUEUES END")
 	log.Println("***************")
 
-	return queueDetailMap, err
+	return queueList, err
 }
 
 // Peek gets a list of the most or least recent items from a given queue
@@ -387,7 +383,7 @@ func (red *Client) Peek(queueID, phase string, limit int) (int, []TaskMessage, e
 }
 
 // AddTask adds a new task to a queue.
-func (red *Client) AddTask(queueID string, task TaskMessage) (int, error) {
+func (red *Client) AddTask(queueID string, task TaskMessage) (listLength int, err error) {
 	log.Println("***************")
 	log.Println("ADDTASK START")
 
@@ -395,19 +391,19 @@ func (red *Client) AddTask(queueID string, task TaskMessage) (int, error) {
 		return -1, errors.New("Connection to Redis not initialized. Did you forget to initialize?")
 	}
 
-	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	timestamp := strconv.FormatInt(time.Now().UnixMicro(), 10)
 
 	red.zaddCreate("listOfLists", timestamp, queueID)
 
 	taskMessageStr := task.ToString()
-	newlength, err := red.lpush(queueID, taskMessageStr)
+	listLength, err = red.lpush(queueID, taskMessageStr)
 	if err != nil {
 		log.Panic(err)
 	}
 
 	log.Println("ADDTASK END")
 	log.Println("***************")
-	return newlength, nil
+	return listLength, nil
 }
 
 // ClearQueue deletes everything belonging to a given queue.
@@ -434,13 +430,13 @@ func (red *Client) AddTaskFromString(queueID string, message string) (int, error
 
 	id := ksuid.New().String()
 	task := TaskMessage{ID: id, Body: message}
-	len, err := red.AddTask(queueID, task)
+	listLength, err := red.AddTask(queueID, task)
 	if err != nil {
 		return -1, errors.Wrap(err, "failed to add tasks from string")
 	}
 	log.Println("ADDTASKSFROMSTRING END")
 	log.Println("***************")
-	return len, nil
+	return listLength, nil
 }
 
 // AddTasksFromFile is a function for loading from a file

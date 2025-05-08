@@ -56,8 +56,8 @@ service API {
       get: "/v1/queue/{queueID}/{phase}/{limit}"
     };
   }
-
-  rpc ListQueues (google.protobuf.Empty) returns (QueueList) {
+  
+  rpc ListQueues (ListRequestMessage) returns (repeated QueueInfo) {
     option (google.api.http) = {
       get: "/v1/queue"
     };
@@ -91,6 +91,7 @@ message Meta {
   string queueID = 1;
 }
 
+// Original style RequestMessage
 message RequestMessage {
   string queueID = 1;
   int32 expirationSec = 2;
@@ -98,9 +99,18 @@ message RequestMessage {
   int32 limit = 4; // only valid for peek
 }
 
+message ListRequestMessage {
+  string sortBy = 1;
+}
+
 message StatusMessage {
   Status status = 1;
   string detail = 2;
+}
+
+message TaskList {
+  int32 totalItems = 1;
+  repeated Task tasks = 2;
 }
 
 message QueueProgress {
@@ -110,11 +120,6 @@ message QueueProgress {
 	int32 expiredCount = 4;
 	int32 completedCount = 5;
 	int32 failedCount = 6;
-}
-
-message TaskList {
-  int32 totalItems = 1;
-  repeated Task tasks = 2;
 }
 
 message QueueInfo {

@@ -92,9 +92,15 @@ func (suite *MainTestSuite) TestOneTaskEndToEnd() {
 func (suite *MainTestSuite) TestListQueues() {
 	fmt.Println("*** TestListQueues()")
 
+	inputTask := &pb.Task{
+		QueueID: "clientTest",
+		Body:    "echo 'Just Testing!'",
+	}
+	suite.grpcDriver.PushTask(inputTask)
+
 	result, err := suite.grpcDriver.ListQueues()
 	suite.Nil(err, "listQueues raises an error")
-	fmt.Println(result)
+	suite.NotEmpty(result.Queues)
 }
 
 // TestTaskConnectFirst is a test to show a problem where, if LoadTask is

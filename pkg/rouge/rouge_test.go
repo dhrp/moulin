@@ -342,7 +342,7 @@ func (suite *RedClientTestSuite) TestAddTasksFromFile() {
 func (suite *RedClientTestSuite) TestProgress() {
 
 	var err error
-	var result QueueInfo
+	var result QueueProgress
 	queueID := "test.queue"
 	var msg TaskMessage
 	ctx := context.TODO()
@@ -420,8 +420,28 @@ func (suite *RedClientTestSuite) TearDownTest() {
 }
 
 func (suite *RedClientTestSuite) TestListQueues() {
-	list, _ := suite.red.ListQueues()
+
+	msg1 := GenerateMessage("message 1")
+	msg2 := GenerateMessage("message 2")
+	msg3 := GenerateMessage("message 3")
+
+	suite.red.AddTask("c-list", msg1)
+	// we sleep just to be sure the timestamp actually increments
+	time.Sleep(2 * time.Millisecond)
+	suite.red.AddTask("b-list", msg2)
+	time.Sleep(2 * time.Millisecond)
+	suite.red.AddTask("a-list", msg3)
+
+	list, _ := suite.red.ListQueues("alpha")
 	log.Printf("list of queues: %v", list)
+	suite.Equal(list[0].QueueID, "a-list")
+
+	list, _ = suite.red.ListQueues("created")
+	log.Printf("list of queues: %v", list)
+	suite.Equal(list[0].QueueID, "c-list")
+
+	_, err := suite.red.ListQueues("unknown-type")
+	suite.NotNil(err)
 }
 
 // test the delete queue function
@@ -465,7 +485,7 @@ func (suite *RedClientTestSuite) TestDeleteQueueNotExisting() {
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {
-	// suite.red.flushdb()
+	suite.red.flushdb()
 	log.Println("closing suite, cleaning up Redis")
 }
 

@@ -390,17 +390,30 @@ func (c *Client) scanForLists() (lst []string, err error) {
 	return lst, err
 }
 
-func (c *Client) getLists(sort string) (lst []string, err error) {
+func (c *Client) getLists(sortOrder string) (lst []string, err error) {
 
 	masterList := "listOfLists"
 
 	var resp *redis.Resp
 	var list []string
+	var order = "ASC"
 
-	if sort == "created" {
-		resp = c.clientpool.Cmd("ZRANGE", masterList, 0, -1)
+	if sortOrder != "" && sortOrder[0] == '-' {
+		sortOrder = sortOrder[1:]
+		order = "DESC"
+	}
+
+	if sortOrder == "alpha" || sortOrder == "" {
+		resp = c.clientpool.Cmd("SORT", masterList, "ALPHA", order)
+	} else if sortOrder == "created" {
+		if order == "ASC" {
+			resp = c.clientpool.Cmd("ZRANGE", masterList, 0, -1)
+		} else {
+			resp = c.clientpool.Cmd("ZRANGE", masterList, 0, -1, "REV")
+		}
 	} else {
-		resp = c.clientpool.Cmd("SORT", masterList, "ALPHA")
+		errMsg := fmt.Sprintf("Error: received invalid sort order '%s'", sortOrder)
+		return list, errors.New(errMsg)
 	}
 
 	respArr, err := resp.Array()
