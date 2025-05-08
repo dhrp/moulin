@@ -434,14 +434,18 @@ func (suite *RedClientTestSuite) TestListQueues() {
 
 	list, _ := suite.red.ListQueues("alpha")
 	log.Printf("list of queues: %v", list)
-	suite.Equal(list[0].QueueID, "a-list")
+	suite.Equal("a-list", list[0].QueueID)
 
 	list, _ = suite.red.ListQueues("created")
 	log.Printf("list of queues: %v", list)
-	suite.Equal(list[0].QueueID, "c-list")
+	suite.Equal("c-list", list[0].QueueID)
 
 	_, err := suite.red.ListQueues("unknown-type")
 	suite.NotNil(err)
+
+	suite.red.deleteQueue("a-list")
+	suite.red.deleteQueue("b-list")
+	suite.red.deleteQueue("c-list")
 }
 
 // test the delete queue function

@@ -48,15 +48,16 @@ func (suite *MainTestSuite) TestGetHealthz() {
 func (suite *MainTestSuite) TestLoadExpire() {
 	fmt.Println("*** TestLoadExpire()")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
+
+	time.Sleep(2 * time.Second)
 
 	_, err := suite.grpcDriver.LoadTask(ctx, "clientTest")
 	code := status.Code(err)
 
 	fmt.Println(code)
 	suite.Equal(code, codes.DeadlineExceeded)
-
 }
 
 func (suite *MainTestSuite) TestOneTaskEndToEnd() {
@@ -98,9 +99,11 @@ func (suite *MainTestSuite) TestListQueues() {
 	}
 	suite.grpcDriver.PushTask(inputTask)
 
-	result, err := suite.grpcDriver.ListQueues()
+	result, err := suite.grpcDriver.ListQueues("")
 	suite.Nil(err, "listQueues raises an error")
 	suite.NotEmpty(result.Queues)
+
+	suite.grpcDriver.DeleteQueue("clientTest")
 }
 
 // TestTaskConnectFirst is a test to show a problem where, if LoadTask is
