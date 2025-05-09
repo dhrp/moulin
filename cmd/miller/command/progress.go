@@ -47,9 +47,9 @@ func (c *Progress) Run(args []string) int {
 
 // Help (LoadCommand) shows help
 func (c *Progress) Help() string {
-	return `Get the progress of a queue, this shows the lenght of the queue in each phase.
+	return `Get the progress of a queue, this shows the length of the queue in each phase.
 
-Usage: mouli-cli progress <queueID>
+Usage: moulin-cli progress <queueID>
 
 example: 
   moulin-cli progress my-queue`

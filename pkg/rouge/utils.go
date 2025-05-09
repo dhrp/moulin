@@ -36,8 +36,8 @@ func (t *TaskMessage) FromString(ts string) (*TaskMessage, error) {
 	return t, nil
 }
 
-// QueueInfo is a type meant for representing progress
-type QueueInfo struct {
+// QueueProgress is a type meant for representing progress
+type QueueProgress struct {
 	incomingCount  int
 	receivedCount  int
 	runningCount   int
@@ -46,28 +46,8 @@ type QueueInfo struct {
 	failedCount    int
 }
 
-// ToString converts a QueueInfo object to string
-func (obj *QueueInfo) ToString() string {
-
-	stringFmt := `
-incomingCount  %d
-receivedCount  %d
-runningCount   %d
-expiredCount   %d
-completedCount %d
-failedCount    %d`
-
-	return fmt.Sprintf(stringFmt,
-		obj.incomingCount,
-		obj.receivedCount,
-		obj.runningCount,
-		obj.expiredCount,
-		obj.completedCount,
-		obj.failedCount)
-}
-
-// ToBuff converts a QueueInfo object to it's protobuf representation
-func (obj *QueueInfo) ToBuff() *pb.QueueProgress {
+// ToBuff converts a QueueProgress object to it's protobuf representation
+func (obj *QueueProgress) ToBuff() *pb.QueueProgress {
 	qp := &pb.QueueProgress{
 		IncomingCount:  int32(obj.incomingCount),
 		ReceivedCount:  int32(obj.receivedCount),
@@ -78,6 +58,60 @@ func (obj *QueueInfo) ToBuff() *pb.QueueProgress {
 	}
 	return qp
 }
+
+// ToString converts a QueueInfo object to string
+func (obj *QueueProgress) ToString() string {
+
+	stringFmt := `
+incomingCount  %d
+`
+
+	return fmt.Sprintf(stringFmt,
+		obj.incomingCount,
+	)
+}
+
+// QueueInfo is a type meant for representing info about a queue
+type QueueInfo struct {
+	QueueID  string
+	Progress QueueProgress
+}
+
+// ToString converts a QueueInfo object to string
+func (obj *QueueInfo) ToString() string {
+
+	stringFmt := `
+name 		 %s
+incomingCount  %d
+`
+
+	return fmt.Sprintf(stringFmt,
+		obj.QueueID,
+		obj.Progress.incomingCount,
+	)
+}
+
+// ToBuff converts a QueueInfo object to it's protobuf representation
+func (obj *QueueInfo) ToBuff() (queueInfo *pb.QueueInfo) {
+
+	name := obj.QueueID
+	qp := obj.Progress.ToBuff()
+
+	return &pb.QueueInfo{
+		QueueID:  name,
+		Progress: qp,
+	}
+}
+
+// type QueueList struct {
+// 	Queues []*QueueInfo
+// }
+
+// func (obj *QueueList) toBuff() (queueList *pb.QueueList) {
+// 	return &pb.QueueList{
+// 		Queues: obj.Queues,
+// 	}
+// }
 
 func newScore() string {
 	// determine the score (when task should expire)

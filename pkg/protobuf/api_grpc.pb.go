@@ -44,7 +44,7 @@ type APIClient interface {
 	Fail(ctx context.Context, in *Task, opts ...grpc.CallOption) (*StatusMessage, error)
 	Progress(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*QueueProgress, error)
 	Peek(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*TaskList, error)
-	ListQueues(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*QueueMap, error)
+	ListQueues(ctx context.Context, in *ListRequestMessage, opts ...grpc.CallOption) (*QueueList, error)
 	DeleteQueue(ctx context.Context, in *RequestMessage, opts ...grpc.CallOption) (*StatusMessage, error)
 }
 
@@ -128,8 +128,8 @@ func (c *aPIClient) Peek(ctx context.Context, in *RequestMessage, opts ...grpc.C
 	return out, nil
 }
 
-func (c *aPIClient) ListQueues(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*QueueMap, error) {
-	out := new(QueueMap)
+func (c *aPIClient) ListQueues(ctx context.Context, in *ListRequestMessage, opts ...grpc.CallOption) (*QueueList, error) {
+	out := new(QueueList)
 	err := c.cc.Invoke(ctx, API_ListQueues_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -158,7 +158,7 @@ type APIServer interface {
 	Fail(context.Context, *Task) (*StatusMessage, error)
 	Progress(context.Context, *RequestMessage) (*QueueProgress, error)
 	Peek(context.Context, *RequestMessage) (*TaskList, error)
-	ListQueues(context.Context, *emptypb.Empty) (*QueueMap, error)
+	ListQueues(context.Context, *ListRequestMessage) (*QueueList, error)
 	DeleteQueue(context.Context, *RequestMessage) (*StatusMessage, error)
 	mustEmbedUnimplementedAPIServer()
 }
@@ -191,7 +191,7 @@ func (UnimplementedAPIServer) Progress(context.Context, *RequestMessage) (*Queue
 func (UnimplementedAPIServer) Peek(context.Context, *RequestMessage) (*TaskList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Peek not implemented")
 }
-func (UnimplementedAPIServer) ListQueues(context.Context, *emptypb.Empty) (*QueueMap, error) {
+func (UnimplementedAPIServer) ListQueues(context.Context, *ListRequestMessage) (*QueueList, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListQueues not implemented")
 }
 func (UnimplementedAPIServer) DeleteQueue(context.Context, *RequestMessage) (*StatusMessage, error) {
@@ -355,7 +355,7 @@ func _API_Peek_Handler(srv interface{}, ctx context.Context, dec func(interface{
 }
 
 func _API_ListQueues_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(ListRequestMessage)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -367,7 +367,7 @@ func _API_ListQueues_Handler(srv interface{}, ctx context.Context, dec func(inte
 		FullMethod: API_ListQueues_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(APIServer).ListQueues(ctx, req.(*emptypb.Empty))
+		return srv.(APIServer).ListQueues(ctx, req.(*ListRequestMessage))
 	}
 	return interceptor(ctx, in, info, handler)
 }

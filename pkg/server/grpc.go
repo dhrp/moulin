@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 
 	pb "github.com/dhrp/moulin/pkg/protobuf"
 	"github.com/dhrp/moulin/pkg/rouge"
@@ -166,28 +167,32 @@ func (s *server) Fail(_ context.Context, in *pb.Task) (*pb.StatusMessage, error)
 
 // Progress returns a status struct about the requested queue
 func (s *server) Progress(ctx context.Context, in *pb.RequestMessage) (*pb.QueueProgress, error) {
-	queueInfo, err := s.rouge.Progress(in.QueueID)
+	queueProgress, err := s.rouge.Progress(in.QueueID)
 	if err != nil {
-		return nil, grpc.Errorf(codes.Unknown, "could not get progress")
+		return nil, status.Errorf(codes.Unknown, err.Error())
 	}
-	return queueInfo.ToBuff(), nil
+	return queueProgress.ToBuff(), nil
 }
 
-func (s *server) ListQueues(_ context.Context, in *empty.Empty) (*pb.QueueMap, error) {
-
-	queueMap := &pb.QueueMap{Queues: make(map[string]*pb.QueueProgress)}
-	queues, err := s.rouge.ListQueues()
-
+func (s *server) ListQueues(_ context.Context, in *pb.ListRequestMessage) (*pb.QueueList, error) {
+	queueList, err := s.rouge.ListQueues(in.SortBy)
 	if err != nil {
-		return nil, grpc.Errorf(codes.Unknown, "could not get progress")
+		return nil, status.Errorf(codes.Unknown, err.Error())
 	}
+
+	queueInfos := make([]*pb.QueueInfo, 0)
 
 	// for each queue in the map, create a &pb.QueueProgress
-	for queueName, queueInfo := range queues {
-		queueMap.Queues[queueName] = queueInfo.ToBuff()
+	for _, queueInfo := range queueList {
+		qi := queueInfo.ToBuff()
+		queueInfos = append(queueInfos, qi)
 	}
 
-	return queueMap, nil
+	out := &pb.QueueList{
+		Queues: queueInfos,
+	}
+
+	return out, nil
 }
 
 // Peek returns a count and messageList
