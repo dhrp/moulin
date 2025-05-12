@@ -17,10 +17,12 @@ import (
 
 // Client Basic client class to group Redis functions
 type Client struct {
-	clientpool *pool.Pool
+	clientpool     *pool.Pool
+	masterListName string
 }
 
 func NewRougeClient() (*Client, error) {
+
 	redisHost := os.Getenv("REDIS_ADDRESS")
 	if redisHost == "" {
 		redisHost = "localhost:6379"
@@ -34,7 +36,10 @@ func NewRougeClient() (*Client, error) {
 	log.Println("redis client connected successfully with radix driver")
 	// red.clientpool = pool
 
-	return &Client{clientpool: pool}, nil
+	return &Client{
+		clientpool:     pool,
+		masterListName: "listOfLists",
+	}, nil
 
 }
 
@@ -392,8 +397,7 @@ func (red *Client) AddTask(queueID string, task TaskMessage) (listLength int, er
 	}
 
 	timestamp := strconv.FormatInt(time.Now().UnixMicro(), 10)
-
-	red.zaddCreate("listOfLists", timestamp, queueID)
+	red.zaddCreate(red.masterListName, timestamp, queueID)
 
 	taskMessageStr := task.ToString()
 	listLength, err = red.lpush(queueID, taskMessageStr)

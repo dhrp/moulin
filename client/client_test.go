@@ -48,10 +48,10 @@ func (suite *MainTestSuite) TestGetHealthz() {
 func (suite *MainTestSuite) TestLoadExpire() {
 	fmt.Println("*** TestLoadExpire()")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(200 * time.Millisecond)
 
 	_, err := suite.grpcDriver.LoadTask(ctx, "clientTest")
 	code := status.Code(err)

@@ -55,7 +55,6 @@ func NewGRPCDriver() *GRPCDriver {
 	if address == "" {
 		address = "localhost:8042"
 	}
-	fmt.Printf("connecting to moulinServer on %s\n", address)
 
 	var backoffConfig = backoff.Config{
 		MaxDelay: 10 * time.Minute,

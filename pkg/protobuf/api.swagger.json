@@ -484,10 +484,6 @@
     "APIQueueList": {
       "type": "object",
       "properties": {
-        "totalItems": {
-          "type": "integer",
-          "format": "int32"
-        },
         "queues": {
           "type": "array",
           "items": {

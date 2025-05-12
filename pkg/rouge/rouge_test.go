@@ -51,8 +51,7 @@ func (suite *RedClientTestSuite) TestBasicConnection() {
 	suite.NotEmpty(info, "expected redis info")
 }
 
-func (suite *RedClientTestSuite) TestpopQueueAndSaveKeyToSet() {
-
+func (suite *RedClientTestSuite) TestPopQueueAndSaveKeyToSet() {
 	// prepare one item on the queue
 	taskMessage := GenerateMessage(suite.sampleMsgBody)
 	taskMessageStr := taskMessage.ToString()
@@ -72,7 +71,6 @@ func (suite *RedClientTestSuite) TestpopQueueAndSaveKeyToSet() {
 	// negative case; no item on received queue
 	_, err = suite.red.popQueueAndSaveKeyToSet("empty", receivedList, runningSet, expirationSec)
 	suite.NotNil(err, "should have thrown an error when no items in queue")
-
 }
 
 func (suite *RedClientTestSuite) TestRPOP() {
@@ -408,17 +406,6 @@ func (suite *RedClientTestSuite) TestPeek() {
 func (suite *RedClientTestSuite) BeforeTest() {
 }
 
-// The TearDownTest method will be run after every test in the suite.
-func (suite *RedClientTestSuite) TearDownTest() {
-	suite.red.del("test.queue")
-	suite.red.del("test.queue.running")
-	suite.red.del("test.queue.received")
-	suite.red.del("test.queue.completed")
-	suite.red.del("test.queue.expired")
-	suite.red.del("test.queue.failed")
-	suite.red.del("nonexistent")
-}
-
 func (suite *RedClientTestSuite) TestListQueues() {
 
 	msg1 := GenerateMessage("message 1")
@@ -442,10 +429,6 @@ func (suite *RedClientTestSuite) TestListQueues() {
 
 	_, err := suite.red.ListQueues("unknown-type")
 	suite.NotNil(err)
-
-	suite.red.deleteQueue("a-list")
-	suite.red.deleteQueue("b-list")
-	suite.red.deleteQueue("c-list")
 }
 
 // test the delete queue function
@@ -457,11 +440,13 @@ func (suite *RedClientTestSuite) TestDeleteQueue() {
 
 	// push three messages
 	msg1 := GenerateMessage("message 1")
-	suite.red.lpush(queueID, msg1.ToString())
+	suite.red.AddTask(queueID, msg1)
+
 	msg2 := GenerateMessage("message 2")
-	suite.red.lpush(queueID, msg2.ToString())
+	suite.red.AddTask(queueID, msg2)
+
 	msg3 := GenerateMessage("message 3")
-	suite.red.lpush(queueID, msg3.ToString())
+	suite.red.AddTask(queueID, msg3)
 
 	// Load two items from the queue
 	suite.red.Load(ctx, queueID, 300)
@@ -486,6 +471,23 @@ func (suite *RedClientTestSuite) TestDeleteQueue() {
 func (suite *RedClientTestSuite) TestDeleteQueueNotExisting() {
 	_, err := suite.red.DeleteQueue("this.never.existed")
 	suite.NotNil(err, "DeleteQueue should give an error")
+}
+
+// The TearDownTest method will be run after every test in the suite.
+func (suite *RedClientTestSuite) TearDownTest() {
+	suite.red.deleteQueue("test.queue")
+	suite.red.deleteQueue("test.queue.running")
+	suite.red.deleteQueue("test.queue.received")
+	suite.red.deleteQueue("test.queue.completed")
+	suite.red.deleteQueue("test.queue.expired")
+	suite.red.deleteQueue("test.queue.failed")
+	suite.red.deleteQueue("nonexistent")
+	suite.red.deleteQueue("a-list")
+	suite.red.deleteQueue("b-list")
+	suite.red.deleteQueue("c-list")
+	suite.red.deleteQueue("q1")
+	suite.red.deleteQueue("foobar")
+	suite.red.deleteQueue("clientTest")
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {
