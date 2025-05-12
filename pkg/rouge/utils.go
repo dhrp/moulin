@@ -103,16 +103,6 @@ func (obj *QueueInfo) ToBuff() (queueInfo *pb.QueueInfo) {
 	}
 }
 
-// type QueueList struct {
-// 	Queues []*QueueInfo
-// }
-
-// func (obj *QueueList) toBuff() (queueList *pb.QueueList) {
-// 	return &pb.QueueList{
-// 		Queues: obj.Queues,
-// 	}
-// }
-
 func newScore() string {
 	// determine the score (when task should expire)
 	timestamp := int64(time.Now().Unix())
