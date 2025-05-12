@@ -1,8 +1,6 @@
 module github.com/dhrp/moulin
 
-go 1.21
-
-toolchain go1.23.3
+go 1.24
 
 require (
 	github.com/golang/protobuf v1.5.3

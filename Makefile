@@ -64,7 +64,7 @@ publish:
 	docker buildx build --platform linux/amd64 --build-arg APP_VERSION=$(VERSION) -t dhrp/moulin:$(IMAGE_TAG) --push .
 
 docker-run:
-	docker run --link redis:redis -e REDIS_ADDRESS=redis:6379 --name moulin -d dhrp/moulin:$(IMAGE_TAG)
+	docker run --link redis:redis -e REDIS_ADDRESS=redis:6379 -p 8042:8042 --name moulin -d dhrp/moulin:$(IMAGE_TAG)
 
 docker-run-cli:
 	docker run --link redis:redis -e MOULIN_SERVER=moulin:8042 dhrp/moulin:$(IMAGE_TAG)
