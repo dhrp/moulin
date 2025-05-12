@@ -491,7 +491,7 @@ func (suite *RedClientTestSuite) TearDownTest() {
 }
 
 func (suite *RedClientTestSuite) TearDownSuite() {
-	suite.red.flushdb()
+	// suite.red.flushdb()
 	log.Println("closing suite, cleaning up Redis")
 }
 
