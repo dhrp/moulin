@@ -231,7 +231,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/APIQueueMap"
+              "$ref": "#/definitions/APIQueueList"
             }
           },
           "default": {
@@ -241,6 +241,14 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "tags": [
           "API"
         ]
@@ -462,17 +470,25 @@
     }
   },
   "definitions": {
-    "APIQueueMap": {
+    "APIQueueInfo": {
       "type": "object",
       "properties": {
-        "totalItems": {
-          "type": "integer",
-          "format": "int32"
+        "queueID": {
+          "type": "string"
         },
+        "progress": {
+          "$ref": "#/definitions/APIQueueProgress"
+        }
+      }
+    },
+    "APIQueueList": {
+      "type": "object",
+      "properties": {
         "queues": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/definitions/APIQueueProgress"
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/APIQueueInfo"
           }
         }
       }

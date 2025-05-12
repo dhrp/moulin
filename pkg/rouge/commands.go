@@ -287,15 +287,30 @@ func (c *Client) zadd(set string, score string, member string) (int, error) {
 	return count, nil
 }
 
-// // ZADD Q_working_set <now>+300 queue-id.task-id
+// zaddCreate creates a new member in the set, but unlike zaddUpdate does not update
+// the member if it already exists. This is important for the listOfLists, because
+// we want to keep the order of the listOfLists.
+func (c *Client) zaddCreate(set string, score string, member string) (int, error) {
+
+	log.Printf("Doing: ZADD %s NX %s %s", set, score, member)
+	count, err := c.clientpool.Cmd("ZADD", set, "NX", score, member).Int()
+	if err != nil {
+		log.Panic(err)
+	}
+	return count, nil
+}
+
+// zaddUpdate updates an existing member in the set. It will return 0 if the member
+// was not found in the set.
 func (c *Client) zaddUpdate(set string, score string, member string) (int, error) {
 
 	log.Printf("Doing: ZADD %s XX CH %s %s", set, score, member)
 	// ZADD the element. XX says only update existing items, CH means return us the amount
 	// of *changed* elements. So 1 is good (found an item, AND changed a score. 0 is bad)
+	// e.g. ZADD Q_working_set <now>+300 queue-id.task-id
 	count, err := c.clientpool.Cmd("ZADD", set, "XX", "CH", score, member).Int()
 	if err != nil {
-		log.Panic(err)
+		log.Printf(err.Error())
 		return 0, err
 	}
 
@@ -379,10 +394,48 @@ func (c *Client) scanForLists() (lst []string, err error) {
 	return lst, err
 }
 
+func (c *Client) getLists(sortOrder string) (lst []string, err error) {
+
+	var resp *redis.Resp
+	var list []string
+	var order = "ASC"
+
+	if sortOrder != "" && sortOrder[0] == '-' {
+		sortOrder = sortOrder[1:]
+		order = "DESC"
+	}
+
+	if sortOrder == "alpha" || sortOrder == "" {
+		resp = c.clientpool.Cmd("SORT", c.masterListName, "ALPHA", order)
+	} else if sortOrder == "created" {
+		if order == "ASC" {
+			resp = c.clientpool.Cmd("ZRANGE", c.masterListName, 0, -1)
+		} else {
+			resp = c.clientpool.Cmd("ZRANGE", c.masterListName, 0, -1, "REV")
+		}
+	} else {
+		errMsg := fmt.Sprintf("Error: received invalid sort order '%s'", sortOrder)
+		return list, errors.New(errMsg)
+	}
+
+	respArr, err := resp.Array()
+
+	for _, item := range respArr {
+		str, err := item.Str()
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, str)
+	}
+
+	return list, nil
+}
+
 // deleteQueue deletes all members of all sets and the queue itself
 func (c *Client) deleteQueue(queueID string) (int, error) {
 	luaScript := `
 		local queueName = KEYS[1]
+		local listOfListsName = KEYS[2]
         local sets = { 'running', 'expired', 'completed', 'failed' }
         local totalDeleted = 0
 
@@ -396,11 +449,12 @@ func (c *Client) deleteQueue(queueID string) (int, error) {
             end
         end
 		totalDeleted = totalDeleted + redis.call('LLEN', queueName)
-        redis.call('DEL', queueName)
+		redis.call('DEL', queueName)
+		redis.call('ZREM', listOfListsName, queueName)
         return totalDeleted
     `
 
-	resp := c.clientpool.Cmd("EVAL", luaScript, 1, queueID)
+	resp := c.clientpool.Cmd("EVAL", luaScript, 2, queueID, c.masterListName)
 	if resp.Err != nil {
 		return 0, resp.Err
 	}

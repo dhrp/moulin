@@ -55,7 +55,6 @@ func NewGRPCDriver() *GRPCDriver {
 	if address == "" {
 		address = "localhost:8042"
 	}
-	fmt.Printf("connecting to moulinServer on %s\n", address)
 
 	var backoffConfig = backoff.Config{
 		MaxDelay: 10 * time.Minute,
@@ -200,14 +199,18 @@ func (g GRPCDriver) Peek(queueID, phase string, limit int32) (taskList *pb.TaskL
 	return taskList, nil
 }
 
-// ListQueues returns a list of Progress structs
-func (g GRPCDriver) ListQueues() (queues map[string]*pb.QueueProgress, err error) {
-	queueMap, err := g.client.ListQueues(context.Background(), &empty.Empty{})
+// ListQueues returns a list of ListInfo
+func (g GRPCDriver) ListQueues(sortBy string) (queues *pb.QueueList, err error) {
+
+	rMsg := &pb.ListRequestMessage{
+		SortBy: sortBy,
+	}
+	queues, err = g.client.ListQueues(context.Background(), rMsg)
 	if err != nil {
 		st, _ := status.FromError(err)
 		return nil, errors.New(st.Message())
 	}
-	return queueMap.Queues, nil
+	return queues, nil
 }
 
 // DeleteQueue deletes a queue

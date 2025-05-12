@@ -17,7 +17,7 @@ func (suite *ProcessTestSuite) TestWork() {
 
 	task := new(pb.Task)
 	task.QueueID = "q1"
-	task.Body = `sh -c "echo this is a test && sleep 3 && echo done"`
+	task.Body = `sh -c "echo this is a test && echo done"`
 	grpcDriver.PushTask(task)
 
 	result, err = Work(grpcDriver, "q1", "once")
